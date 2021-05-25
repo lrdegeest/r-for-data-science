@@ -1,0 +1,618 @@
+---
+title: "Functions"
+author: "LDG"
+subtitle: "R for Data Science"
+output:
+  html_notebook:
+    highlight: pygments
+    number_sections: yes
+    theme: readable
+    toc: yes
+    toc_float:
+      collapsed: yes
+---
+
+# Set-up {-}
+  
+```{r load packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+## Acknowledgements {-}
+
+This notebook is based on Chapter 19 of [*R for Data Science*](https://r4ds.had.co.nz/index.html).
+
+# What is a function? 
+
+You've already used tons of functions. 
+
+Take for example `sum()`. It sums the elements of a numerical vector:
+
+```{r sum demo}
+# vector with elements 1 and 2
+x <- c(1,2) 
+# add them up
+sum(x)
+```
+
+## Vending machines
+
+In general a function is an **object** that **converts** an **input** into an **output**.
+
+A vending machine is a function: 
+
+* input: money
+* output: tasty snack
+
+When you write functions think of yourself as a vending-machine designer. Why? Because vending machines are **easy to use**. The input is obvious. The output is obvious. Nobody has to read a manual to use a vending machine. 
+
+So when you design a function, ask yourself:
+
+* Does it have an easy-to-understand name? 
+* Does it have easy-to-understand inputs (arguments)?
+* Does it have an easy-to-understand output? 
+
+## Who cares?
+
+In some cases these desiderata must be satisfied so **other people** can use your code without fuss. 
+
+But in most cases you should think about your **future self.** They review code you wrote a few weeks ago. `myfunc(x)`. What the hell is that?!
+
+## Our focus
+
+We will focus on writing functions with different inputs:  
+
+* vectors of length 1 (e.g., a number)
+* vectors of length $n$ (e.g., many numbers)
+
+Our goal is to build up to **iteration**: applying a function many times to different objects (e.g., to many columns of a tibble/data frame). Efficiently running the same calculation on different data is where programming really becomes important.
+
+## When should you write a function? 
+
+The book says it best:
+
+> You should consider writing a function whenever you’ve copied and pasted a block of code more than twice (i.e. you now have three copies of the same code).
+
+Here are some other thoughts:
+
+* Writing functions helps you think more about **design** ("How should this code be used?").
+* Writing functions is a great way to learn stats/machine learning. By coding up your own estimators you can really understand what goes on under the hood of canned estimators. This will make you a better scientist.
+  - that said you should still use canned estimators in real work because they typically are optimized (e.g., written in C)
+
+# The function template
+
+Here is a template for writing a function:
+
+```{r function template, eval=FALSE}
+informative_name <- function(x) {
+  output <- # do stuff and create an output
+  return(output) # return the output
+}
+```
+
+The function `informative_name()` takes an input `x` and **returns** `output`. If output is a specific thing (e.g., the sum of squares of a vector) you could give it a specific name (e.g., `sum_of_squares`).
+
+As always in programming there are multiple ways of doing the same thing. 
+
+For instance, some people prefer a non-explicit return call:
+
+```{r function template alternative, eval=FALSE}
+informative_name2 <- function(x) {
+  output <- # do stuff and create an output
+  output # return the output
+}
+```
+
+This function does the same thing: it returns `output`. 
+
+The book makes a few arguments (no pun intended!) as to why you should or shouldn't explicitly call `return()` (see section 19.6.1). Mostly these are edge cases and you won't run into them. At the end of the day you navigate it like any other convention. Do what everybody else does. That way your code can enjoy **network effects**. 
+
+In the case of `return()` it does not really matter. The advantage of `return()` is that it is **explicit**. Looking at `informative_name()` it is crystal clear what is returned. But at the end of the day this is a situation where you can pick one or the other. What matters is sticking with a choice. Consistency is key. 
+
+# Arguments
+
+## Arguments of length 1
+
+Everything in R is a vector. 
+
+For instance the number 2 is a vector:
+
+```{r class 2}
+class(2)
+```
+
+A numeric vector of length 1. 
+
+Consider this function:
+
+```{r add-two}
+add_two <- function(x) { 
+  output <- 
+  return(output)
+}
+```
+
+`add_two()` does what it says on the tin: takes a number and adds two to it. 
+
+Press the "play" button to **compile** it. You will see it appear in the Environment tab. Once compiled a function can be used. 
+
+For instance:
+
+```{r add_two}
+# input: 3
+# output: 3 + 2 = 5
+add_two()
+```
+
+Notice how we wrote `function(x=2)`. That means the argument `x` is **optional**. If you don't feed a number to `add_two()`, it will feed itself with its **default** value of 2:
+
+```{r}
+add_two()
+```
+
+## Checkpoint
+
+Write a function called `square_sum` that takes a numerical input `x` (defaulting to 3) and 
+
+* squares it, then;
+* adds the square to `x` to create an object `output`, then;
+* returns `output`:
+
+```{r checkpoint square_sum}
+
+```
+
+Test it out by running:
+
+* `square_sum(x=3)`
+* `square_sum(x=100)`
+
+```{r checkpoint square_sum test}
+
+```
+
+## Local variables
+
+Inside `square_sum` you defined an object `output`. But if you call it you'll get an error:
+
+```{r where is output?}
+square_x
+```
+
+This is because `output` is a **local variable**. It only "exists" (to R) inside `square_sum`. The big idea here is that functions are **environments**. What happens in Vegas stays in Vegas -- unless you `return()` it!
+
+## Multiple "single" numerical arguments
+
+Functions of course can take many arguments. Just specify them inside `function()`:
+
+```{r function template multiple arguments, eval=FALSE}
+informative_name <- function(x, y, z) {
+  output <- # do stuff with x, y and z to create an output
+  return(output) # return the output
+}
+```
+
+## Checkpoint 
+
+Write a function `sum_squares` that takes **two** arguments `x` and `y` and:
+
+* squares `x` and `y`, then;
+* adds the squares to create `output`, then;
+* returns `output`
+
+```{r checkpoint sum_squares}
+
+```
+
+Test it out for `x=10` and `y=100`:
+
+```{r checkpoint sum_squares test}
+sum_squares(2, 3)
+```
+
+```{r}
+class(sum_squares)
+```
+
+## Arguments of length $n$
+
+`sum()` can add a single number:
+
+```{r sum demo one number}
+sum(2)
+```
+
+which of course is not useful at all. 
+
+What _is_ useful is `sum()` adding up **many** numbers:
+
+```{r}
+set.seed(123) # so we get the same random numbers
+# create a vector of 1000 random standard normal numbers (mean 0, sd 1)
+random_normal_numbers <- rnorm(n = 1000, mean = 0, sd = 1)
+# add them up
+sum(random_normal_numbers)
+```
+
+To `sum()` the argument `x` is always a numerical vector of **any** length. 
+
+## Checkpoint
+
+Re-write`square_sum` so that it takes in a vector, squares each value, adds them up, and returns:
+
+```{r checkpoint square_sum vector}
+
+```
+
+Test it out on `random_normal_numbers`:
+
+```{r checkpoint square_sum vector test}
+
+```
+
+# Functions to do math
+
+Writing functions is useful when you want to do math. 
+
+Most math is usually just a bunch of small, easy steps (addition, subtraction, etc.) chained together. 
+
+You might find yourself in this position if you need to code up a stats estimator.
+
+## Checkpoint
+
+Write a function called `my_sd()` that calculates the standard deviation of a vector. The formula is:
+
+$$
+s = \sqrt{\frac{1}{n-1} \sum_{i=1}^n (x_i - \bar{x})^2}
+$$
+
+Think about the steps when coding it up:
+
+1. calculate the **deviations** $x_i  - \bar{x}$ where $\bar{x}$ is the sample mean
+2. square the deviations
+3. add up the squared deviations
+4. multiply by $\frac{1}{n-1}$ (use `length()`) to get the length of `x`, i.e. $n$
+5. take the square root
+
+```{r checkpoint my_sd}
+
+```
+
+Test it out on `random_normal_numbers`:
+
+```{r checkpoint my_sd test}
+
+```
+
+Compare it to the canned routine `sd()`:
+
+```{r sd vs my_sd}
+
+```
+
+Side note: Why is the result close to 1? 
+
+Because we drew those numbers from a distribution with a standard deviation of 1. So `my_sd()` and `sd()` **recover** the parameter. 
+
+This idea of "recovering" paramaters is the bedrock of stats. The goal is to "recover" the population parameter from a sample. 
+
+
+## Checkpoint 
+
+Most often you will use functions on observational data rather than simulated data. 
+
+Load the `diamonds` data set:
+
+```{r load diamonds}
+data("diamonds")
+```
+
+The standard deviation of price is just `sd()` on the `price` vector inside the `diamonds` tibble:
+
+```{r sd price}
+
+
+```
+
+Replicate the results from `sd()` with `my_sd()`.
+
+```{r checkpoint my_sd price}
+
+```
+
+## Checkpoint
+
+Do carats influence the price of diamonds? We can build a model:
+
+$$
+\begin{aligned}
+\text{prices} &= f(\text{carats}) + \epsilon \\
+                     &= \beta_0 + \beta_1(\text{carats}) + \epsilon
+\end{aligned}
+$$
+where $\beta_1$ captures the average effect of carats on prices. If $\hat{\beta_1}$ (the estimate) is positive, then more carats = higher prices, on average. The formula for $\beta_1$ is:
+
+$$
+\hat{\beta_1} = \frac{\sum_{i=1}^n (x_i - \bar{x})(y_i - \bar{y})}{\sum_{i=1}^n (x_i - \bar{x})^2}
+$$
+We can estimate the parameters with `lm()`:
+
+```{r lm diamonds}
+lm(formula = price ~ carat, data = diamonds) %>% 
+  summary()
+```
+
+Write a function called `my_lm()` that takes an `x` and `y` argument and calculates the regression coefficient of `x` on `y`. Then replicate the results from `lm(formula = price ~ carat, data = diamonds)`. Think about what code you can re-use from `my_sd()`.
+
+```{r checkpoint my_lm}
+
+```
+
+```{r checkpoint my_lm test}
+
+```
+
+# Conditional execution 
+
+What **if** you want your function to do different things depending on the input?
+
+Use an `if` statement! 
+
+This function checks **if** the argument is equal to two. If it is, add two and return. 
+
+```{r add_two_if }
+add_two_if <- function(x) { 
+  if(x == 2){
+    output <- x + 2
+    return(output)
+  }
+}
+```
+
+Try it out:
+
+```{r add_two_if demo}
+add_two_if(x = 1)
+```
+
+The `if(x==2)` is the **logical test**, a test that only returns `TRUE` or `FALSE`:
+
+```{r boolean 1}
+2 == 2
+```
+
+```{r boolean 2}
+2 == 3
+```
+
+So when `if(x==2)` evaluates to `TRUE` the function proceeds. 
+
+### Logical tests
+
+Like in  `dplyr::filter()` we can use the following conditionals inside `if()`:
+
+* `==`: "is equal to"
+* `!=`: "is not equal to"
+* `&`: "and"
+* `|`: "or"
+* `>`, `>=`: "greater than", "less than or equal to"
+* `<`, `<=`: "less than", "less than or equal to"
+
+### `else`
+
+But what if we pass an argument other than two? 
+
+```{r add_two_if not 2}
+add_two_if(x = 3)
+```
+
+Nothing happens. 
+
+What we need is a way to **handle** the **exception** -- a way to deal with arguments that are not equal to 2. 
+
+This is where `else` comes in.
+
+The general structure of an `if-else` statement is:
+
+```{r if else outline, eval=FALSE}
+if(TRUE) { # if the test is true
+  # do this thing
+} else { # otherwise
+  # do this other thing
+}
+```
+
+Let's modify `add_two_if` to add three if an argument is not two:
+
+```{r add_two_if else}
+add_two_if <- function(x) { 
+  if(x > 2 && x < 4){
+    output <- x + 2
+    # do some function
+  } else {
+    output <- x - 2
+    # do some other function
+  }
+  return(output)
+}
+```
+
+```{r}
+add_two_if(x = 2)
+```
+
+
+Notice how the `return()` statement is outside the `if...else` scope. (Anything in R wrapped in `{}` is a "scope").
+
+In theory you can chain together as many `if...else` statements as you want by adding more logical tests:
+
+```{r add_two_if bad, eval=FALSE}
+add_two_if <- function(x) { 
+  if(x == 2){
+    output <- x + 2
+  } else if(x == 3) {
+    output <- x + 3
+  } else if(x == 4){
+    output <- x + 3
+  } else { 
+    print("this is a bad function")
+  }
+  return(output)
+}
+```
+
+But you want to avoid this. It's hard to read and probably not necessary. The chapter has a few suggestions for alternatives. For now we will stick to one logical test. 
+
+## Checkpoint
+
+Write a function `truth_or_dare` that takes a vector and checks whether the third entry is positive. If yes, print "truth". If no, print "dare".  
+
+**Update** We changed this to also demo `stop()`.
+
+```{r checkpoint truth_or_dare}
+
+```
+
+```{r}
+vec = c(2,3,4,5)
+truth_or_dare(2)
+```
+
+
+## `ifelse()`
+
+The `if...else` scope only works for vectors of length 1.
+
+Run this chunk:
+
+```{r if-else length 1}
+another_vector <- c(1, NA, 3, NA)
+if(is.na(another_vector)) {
+  "NA :("
+} else{
+  "number"
+}
+```
+
+`if` stopped after the first entry of `another_vector`.
+
+Use `ifelse()` to run an `if..else` scope over an entire vector:
+
+```{r ifelse}
+ifelse(test = is.na(another_vector), yes = 0, no = "a")
+```
+
+# Appendix
+
+## Dot-dot-dot
+
+You may have noticed that many functions in R have the argument `...`. 
+
+For instance, the arguments to `mean()` are:
+
+```{r}
+mean(x, ...)
+```
+
+The argument `x` is mandatory. The argument `...` is optional. What is cool about `...` is that you can pass any number of arbitrary arguments to it. 
+
+For instance, what if you have `NA` in a vector? 
+
+```{r vector with NA}
+v <- c(1,2,NA)
+```
+
+`mean(x)` will return `NA`:
+
+```{r mean vec with NA}
+mean(v)
+```
+
+but you can pass `na.rm` to `...` so that `mean()` only looks at numerical values:
+
+```{r mean vec with NA and na.rm}
+mean(v, na.rm = TRUE)
+```
+
+Ditto `sd()`. Without `na.rm`:
+
+```{r sd vec with NA}
+sd(v)
+```
+
+With `na.rm`:
+
+```{r vec with NA and na.rm}
+sd(v, na.rm = TRUE)
+```
+
+This underscores the real value of `...`: passing optional arguments to other functions that have optional arguments -- like `mean()` and `sd()`.
+
+### Checkpoint
+
+Say you have this vector with NAs:
+
+```{r}
+# create a vector of random numbers
+na_vector <- rnorm(n = 1000, mean = 0, sd = 1)
+# randomly replace some of the values as NA
+na_vector[sample(1:1000, 100)] <- NA
+```
+
+Write a function called `z_score` that calculates the z-score of each element of `na_vector`. The formula is:
+
+$$
+z_i = \frac{x_i - \bar{x}}{s}
+$$
+
+where $\bar{x}$ is the sample mean and $s$ is the sample standard deviation. Make sure your function can account for NAs by including `...` and passing that to `mean(x, ...)` and `sd(x, ...)`.
+
+```{r checkpoint z-score}
+
+```
+
+Test it out on `na_vector`:
+
+```{r checkpoint z-score test}
+
+```
+
+Section 19.5.3 links to other ways to use `...`. They're handy when you write functions that take entire data sets as arguments. For more see Chapters 18-21 of the [Tidyverse Design Guide](https://design.tidyverse.org/dots-position.html).
+
+### Aside: randomly sampling a vector
+
+Let's randomly replace some of the values in `random_normal_numbers` using **indexing** and `sample()`.
+
+Recall that `[]` indexes vectors by **position**. For instance, the first three elements of `random_normal_numbers`:
+
+```{r indexing}
+random_normal_numbers[1:3]
+```
+
+and `sample()` will randomly sample any vector. For instance, randomly sample two  integers between 1 and 10:
+
+```{r sample}
+sample(x = 1:10, size = 3)
+```
+
+For instance I could randomly sample a vector:
+
+```{r demo sample}
+# vector of 1, 2, .., 10
+x <- 1:10
+# the length of the vector
+n <- length(x)
+# randomly draw three elements from x
+x[sample(x = 1:n, size = 3)]
+```
+
+so we can combine indexing and sample to randomly switch values in a vector to NA:
+
+```{r}
+# get the length of random_normal_numbers (1000)
+n <- length(random_normal_numbers)
+# from the positional index of 1:n, randomly choose 100 of them, 
+## and reassign their corresponding values in random_normal_numbers to NA
+random_normal_numbers[sample(1:n, 100)] <- NA
+```
+

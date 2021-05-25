@@ -1,0 +1,750 @@
+---
+title: "Iteration (Completed Notebook)"
+subtitle: "R for Data Science"
+author: "LDG"
+output: 
+  html_notebook:
+    number_sections: true
+    theme: readable
+    highlight: pygments
+    toc: true
+    toc_float: 
+      collapsed: yes      
+---
+
+# Set-up {-}
+ 
+```{r load packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+## Acknowledgements {-}
+
+This notebook is based on Chapters 21 of [*R for Data Science*](https://r4ds.had.co.nz/index.html).
+
+1. simple loops. on a vector, on a data frame
+2. purr maps: creating functionals
+3. CLT
+
+# The definition of madness
+
+Einstein once said:
+
+> "Insanity is doing the same thing over and over and expecting different results."
+
+That is true for life. And it is true for programming. Looping or **iteration** is about doing the **same** thing over and over again and returning **exactly** the same results. 
+
+Let's revisit the big picture. In data science we have data and functions that do stuff to those data. For instance, calculate the mean of a column. That's pretty much it. 
+
+Iteration **most often** enters the picture when you need to use the same function **many times** (e.g., calculate the mean of many different columns). 
+
+This is what `summarise` does for you under the hood:
+
+```{r summarise demo}
+# load the diamonds data
+data("diamonds") 
+
+# average price, table, depth
+diamonds %>% 
+  summarise(mean(price), mean(table), mean(depth))
+```
+
+in this example it applies the function `mean()` to three different columns. 
+
+## Functional programming
+
+R is a **functional programming** language. In a nutshell that means loops are "wrapped" inside **functions** which are then **applied** to entire vectors (rather than individual elements). 
+
+Something really confusing about R (to me, at least) is the [community's attitude towards loops](https://stackoverflow.com/questions/30240573/are-for-loops-evil-in-r). Beginners are told to never use loops because they are slow and instead use "vectorised" solutions. But as we will shortly see, "vectorised" solutions are just loops in a faster language (C). And the slowness of a loop depends not on the loop itself but [what you do inside the loop](https://privefl.github.io/blog/why-loops-are-slow-in-r/).
+
+Moreover, loops are really useful for one reason: they are **easy** to understand and they are an important construct to master when writing **pseudocode**, the most important programming language of all. 
+
+The `tidyverse` leans into the idea of functional programming with its family of `map` operators from the package `purrr` (which ships with `library(tidyverse)`). 
+
+## Pseudocode
+
+Pseudocode is executable code for humans rather than computers. Basically it's general instructions on **how** to write code. You write down the basic idea. Implementing the idea is then just a matter of converting the pseudocode into a language the computer can read (R, Python, Visual Basic, FORTRAN, whatever). 
+
+Thinking in these terms is very important when writing programs that **iterate**. Why? Because you have to think very carefully about two things:
+
+* the desired **input** (e.g., a numeric vector)
+* the desired **output** (e.g., another numeric vector)
+
+and more importantly this helps you think about **whether you need a loop at all** to solve your problem. If you don't need a loop, don't use a loop.
+
+Later in this notebook we will write a program that uses iteration to simulate the Central Limit Theorem. The pseudocode is:
+
+```
+for each i in N simulations: 
+  1. draw a random sample of the data 
+  2. estimate a linear model
+  3. extract the coefficient of interest
+  4. return the coefficient
+endfor
+```
+
+all we have to do is re-write the instructions in R. Not that this is trivial. But the pseudocode gives us a North Star to point to in case we get lost.
+
+# Simple loops
+
+Consider this vector:
+
+```{r make vector 1:10}
+# vector of integers 1 to 10
+x = 1:10
+# view it
+x
+```
+
+What if we wanted to write a loop that takes each element, multiply it by 2, and add it to a new vector called `x_2`?
+
+The pseudocode would be something like this:
+
+```
+make an empty vector called "x2" the same length as x
+for each element in x:
+  multiply it by 2 and attach it to the corresponding place in x2
+endfor
+```
+
+First we have to define the **output** of the loop, `x2`. It's a vector, and we want it to hold numbers, or "doubles", and it needs to have the same length of `x`: 
+
+```{r define x2}
+x2 = vector(mode = "double", length = length(x))
+x2
+```
+
+Why define the output before you have the output? Because it's faster. Why? Because by **pre-allocating** memory you use memory more efficiently. Failure to pre-allocate when iterating is one of the main reasons why loops are "slow". See the appendix for more details.
+
+Next we need to set up the loop **skeleton**. This mainly consists of the **iterator** `for each element in x`. What this really says is "if `x` has $n$ elements, run the loop one time for each element and **in order** (i.e., 1, then 2, then 3, etc.)".
+
+There are multiple ways you can do this in R:
+
+```{r iterator 1, eval=FALSE}
+for(i in 1:length(x)){
+  print(i)
+}
+```
+
+or use `seq_along()`:
+
+```{r seq_along}
+for(i in seq_along(x)){
+  print(i)
+}
+```
+
+(The [book](https://r4ds.had.co.nz/iteration.html#for-loops) explains why you might prefer `seq_along()`). 
+
+Finally we define the **body** or "guts" of the loop: multiply the $i_{th}$ element of `x` by 2 and attach it to the $i_th$ element of `x2`. Remember vector indexing in R works like this: `vector[index number]`. So the iterator `i` will serve as the vector index for `x` and `x2`:
+
+```{r for loop demo}
+for(i in seq_along(x)){
+  x2[i] = x[i]*2
+}
+```
+
+Let's view the results:
+
+```{r results loop demo x2}
+x2
+```
+
+It worked!
+
+## Checkpoint
+
+Write a program that loops over `x` and returns a vector `x_squared` with the square of each element of `x`:
+
+```{r checkpoint x_squared}
+# define the output
+x_squared = vector(mode = "double", length = length(x))
+# run the loop
+for(i in seq_along(x)){
+  x_squared[i] = x[i]^2
+}
+# view the output
+x_squared
+```
+
+## Vectorisation
+
+It makes no sense to write a loop that multiples `x` by 2 when we could just do:
+
+```{r vectorised multiplication}
+x*2
+```
+
+"Vectorisation" refers to a function that takes as its argument a vector. In our case it means multiplying each element by 2 "at the same time". But this is of course impossible. You would need a quantum computer!
+
+What is really going on is that `*` is a function and it is "vectorised" because it calls a function that runs the same loop we made, only in C, a much faster language. [Here is the source code](https://github.com/wch/r-source/blob/f05c3e60ded95a498dcd6c0ec7e66257f92fc08b/src/main/names.c#L164).
+
+The important lesson here is that **all calculations applied to each element of a vector use loops**. The only question is whether the loop is run in a faster or slower language. And this is why looping is "discouraged" in R when there are "vectorised" solutions available. Long story short, don't re-invent the wheel. 
+
+## Functional programming
+
+What if you want to make your loop more portable? Use it on **any** vector? Wrap it inside a function! This is the heart of **functional programming**. 
+
+## Checkpoint
+
+Write a function called `square` that takes a numerical vector and returns a vector with the square of each element of the input vector.  Test it out on this vector:
+
+```{r}
+# vector of integers 1 to 20
+test_vector = 1:20
+```
+
+
+```{r checkpoint define square}
+square = function(x){
+  # first define the output
+  output = vector(mode = "double", length = length(x))
+  for(i in seq_along(x)){
+    output[i] = x[i]^2
+  }
+  return(output)
+}
+```
+
+```{r checkpoint test square}
+square(x = test_vector)
+```
+
+## Checkpoint
+
+Just for the sake of practice, let's reinvent `mean()`. Write a function called `my_mean` that calculates the mean of a numerical vector. Recall the formula for the mean:
+
+$$
+\bar{x} = \frac{1}{n} \sum_{i=1}^n x_i
+$$
+
+You can use `length()` to calculate $n$, but try **not** to use `sum()`in your function! Bonus if you also avoid using `length()`.
+
+```{r checkpoint define my_mean}
+my_mean = function(x){
+  # 1. calculate the sum of the vector
+  ## (if we used sum() it would just be sum(x))
+  ## define an empty object called "sum"
+  sum = 0
+  ## now loop over the input and add each element to sum
+  for(i in seq_along(x)){
+    sum = sum + x[i]
+  }
+  # 2. get the length of the vector
+  ## start with an empty value
+  n = 0
+  ## the for each element of the vector...
+  for(i in seq_along(x)){
+    n = n + 1 # add one!
+  }
+  # 3. the mean is sum/n
+  mean = sum/n
+  # 4. return it!
+  return(mean)
+}
+```
+
+Confirm that `my_mean()` returns the same results as `mean()` by calculating average price in `diamonds` inside a call to `summarise()`:
+
+```{r checkpoint test my_mean}
+diamonds %>% 
+  summarise(my_mean(price), mean(price))
+```
+
+(Again, don't use `my_mean()` in real life because [`mean()` is written in C](https://github.com/wch/r-source/blob/f05c3e60ded95a498dcd6c0ec7e66257f92fc08b/src/main/names.c#L492) and therefore much faster.)
+
+# Mapping 
+
+The `tidyverse` way of looping is "mapping" through the `map` functions in `purrr`. The idea is to "map" a function to many objects "all at once" (i.e. the loops are written in C).
+
+Consider this data set of standard normal random variables:
+
+```{r fake data}
+df <- tibble(
+  a = rnorm(n = 5, mean = 0, sd = 1),
+  b = rnorm(n = 5, mean = 0, sd = 1),
+  c = rnorm(n = 5, mean = 0, sd = 1),
+  d = rnorm(n = 5, mean = 0, sd = 1)
+)
+df
+```
+
+Say you wanted to calculate the mean of each column. You could use `summarise()`, or you could write a loop that goes over each column. But a more efficient approach is to apply or **map** the function `mean`:
+
+```{r map mean}
+df %>% 
+  map(mean)
+```
+
+### Lists
+
+The `map` functions all do the same thing but return different data types. For instance, `map_dbl` returns a numeric vector, while `map` returns a **list**. 
+
+Lists are major data objects in R -- the equivalent of "dictionaries" in Python (a "list" in Python is a vector in R). Unlike vectors a list can hold many different data types. One element of a list can be a tibble, another element a vector, and so on. 
+
+When you work with data frames / tibbles you don't spend much time with lists. But it's useful to know who to work with lists because pretty much all objects in R are lists under the hood. 
+
+How do you know? You're dealing with a list-type object if you can index it's attributes with `$`. Tibbles are lists:
+
+```{r}
+df$a
+```
+
+and so are `lm` objects:
+
+```{r lm object type}
+# estimate a linear model
+model = lm(formula = log(price) ~ carat + table + depth, data = diamonds)
+# view the structure of the output with `$`
+str(model)
+```
+
+And the `summary()` of a linear model object is a list:
+
+```{r summary lm object}
+summary_model = summary(model)
+str(summary_model)
+```
+
+
+So if you want to access only the R-squared of the summary object:
+
+```{r index rsquared}
+summary_model$r.squared
+```
+
+or the residual standard deviation `sigma` (the standard deviation of the residuals):
+
+```{r}
+summary_model$sigma
+```
+
+## Mapping over models
+
+Why is this important? Because you might want to run many models and then look at just one piece of each model. 
+
+We know we run a regression like so:
+
+```{r map reg 1}
+diamonds %>% 
+  lm(formula = log(price) ~ carat, data = .) %>% 
+  summary()
+```
+
+But what if we want to **split** the data by some grouping variable (e.g., `cut`) and then estimate the model for each tibble?
+
+The function [`split()`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/split) will split our data in a list:
+
+```{r map reg 2, message=FALSE}
+diamonds%>% 
+  split(.$cut) 
+```
+
+and the output is a list:
+
+```{r map reg 2.1, message=FALSE}
+diamonds %>% 
+  split(.$cut) %>% 
+  class()
+```
+
+so we can `map` the linear model `lm(formula = log(price) ~ carat, data = .)` onto each element of the list:
+
+```{r map reg 3}
+diamonds %>% 
+  split(.$cut) %>% 
+  map(function(x) lm(formula = log(price) ~ carat, data = x)) # notice the x! It's the argument to this "lambda" function ( a function defined inside a function)
+```
+
+and then we can `map` the `summary()` function to each estimated model:
+
+```{r map reg 4}
+diamonds %>% 
+  split(.$cut) %>% 
+  map(function(x) lm(formula = log(price) ~ carat, data = x)) %>% 
+  map(summary)
+```
+
+
+and even extract a single element of each `summary`, e.g. the R-squared value:
+
+```{r map reg 5}
+diamonds %>% 
+  split(.$cut) %>% 
+  map(function(x) lm(formula = log(price) ~ carat, data = x)) %>% 
+  map(summary) %>% 
+  map(~.$r.squared)
+```
+
+## Checkpoint
+
+Write a program that splits `diamonds` by `color` and estimates log price as a function of carats and depth on each split. Which color's model had the lowest residual standard error (`sigma`)?
+
+```{r checkpoint mapping reg}
+diamonds %>% 
+  split(.$color) %>% 
+  map(function(x) lm(formula = log(price) ~ carat + depth, data = x)) %>% 
+  map(summary) %>% 
+  map_dbl(~.$sigma) 
+```
+
+## Mapping vs the apply family
+
+Base R has a set of `apply` functions that work the same (and are just as fast) as the `map` family of functions. Read more [here](https://stackoverflow.com/questions/45101045/why-use-purrrmap-instead-of-lapply).
+
+# The Central Limit Theorem
+
+Consider a linear regression of log prices as a function of table:
+
+```{r}
+lm(formula = log(price) ~ table, data = diamonds)
+```
+
+The coefficient on `table` in the full data set is 0.07. But regression coefficients are **random variables.** To see this, draw a random sample and re-run the regression (play this chunk a few times):
+
+```{r}
+diamonds %>% 
+  slice_sample(n = 30) %>% 
+  lm(formula = log(price) ~ table, data = .)
+```
+
+The coefficient bounces around with each new sample. Why? Because regression coefficients (like all **sample statistics** estimating **population parameters**) are random variables!
+
+The **Central Limit Theorem** says that **sampling distribution** of a regression coefficient will be normal and centered at it's expected value (i.e. the population mean). So if we were to run this experiment many times with `diamonds` (draw a sample, run a regression) we would see a distribution of regression coefficients centered at around 0.07. 
+
+Let's use iteration to recover the sampling distribution of the regression coefficient on `table` and see the Central Limit Theorem in action. 
+
+The goal with this example is to get you thinking about how you can take one action (draw a sample, run a regression), turn it into a function, and then run that function many times.
+
+## One sample
+
+Let's start with one random sample:
+
+```{r}
+diamonds %>% 
+  slice_sample(n = 30) %>% 
+  lm(formula = log(price) ~ table, data = .)
+```
+
+We're interested in the coefficient on `table`. We can extract coefficients from a `lm` object with the function `coef()`:
+
+```{r coef}
+diamonds %>% 
+  slice_sample(n = 30) %>% 
+  lm(formula = log(price) ~ table, data = .) %>% 
+  coef()
+```
+
+`coef()` returns a numeric vector:
+
+```{r}
+diamonds %>% 
+  slice_sample(n = 30) %>% 
+  lm(formula = log(price) ~ table, data = .) %>% 
+  coef() %>% 
+  class()
+```
+
+whose second element is the coefficient on `table`. That's the piece of information we want to keep. 
+
+## Checkpoint
+
+Use the examples above to write code that takes `diamonds`, draws a random sample of 30 observations, runs the regression (log price as a function of table), and assigns the coefficients to a vector called `betas`.
+
+```{r}
+betas = diamonds %>% 
+  slice_sample(n = 30) %>% 
+  lm(formula = log(price) ~ table, data = .) %>% 
+  coef() 
+```
+
+Assign the second element of `betas` to the object `beta_`:
+
+```{r}
+beta_1 = betas[2]
+```
+
+View `beta_1`:
+
+```{r}
+beta_1
+```
+
+## Subsetting with the pipe
+
+If we want to avoid creating an intermediary object `betas` and only keep `beta_1` we can subset `.` after `coef()`:
+
+```{r}
+diamonds %>% 
+  slice_sample(n = 30) %>% 
+  lm(formula = log(price) ~ table, data = .) %>% 
+  coef() %>% 
+  .[2]
+```
+
+## Checkpoint
+
+Turn the code you just wrote into a function called `lm_sampler` that takes an argument `sample_size` (defaulting to 30) and returns **only** the coefficient on `table`.
+
+```{r checkpoint define lm_sampler}
+lm_sampler = function(sample_size=30){
+  beta_1 = diamonds %>% 
+    slice_sample(n = 30) %>% 
+    lm(formula = log(price) ~ table, data = .) %>% 
+    coef() %>% 
+    .[2]
+  return(beta_1)
+}
+```
+
+Play it a few times:
+
+```{r checkpoint test lm_sampler}
+lm_sampler(sample_size = 30)
+```
+
+## Many samples
+
+Now we just need to scale this to run many samples and collect many coefficients. This will be the main **body** of our loop. 
+
+Suppose want to run 100 simulations
+
+```{r}
+n_sims = 100
+```
+
+Let's set up the **output** of our loop, an empty numeric vector called `betas` of length `n_sims`:
+
+first set up an empty vector:
+
+```{r}
+betas = vector("double", length = n_sims)
+```
+
+And now let's think about the loop. 
+
+At at high level our loop will look like this:
+
+```{r, eval = FALSE}
+for(i in seq_along(betas)){
+  # sample, regress, return the coefficient
+}
+```
+
+Since `lm_sampler` returns a single number (the regression coefficient), on the i-th run of `lm_sampler`, we assign the coefficient to the i-th value of `betas`. 
+
+Let's run it:
+
+```{r}
+for(i in seq_along(betas)){
+  betas[i] = lm_sampler(sample_size = 30)
+}
+```
+
+View the output:
+
+```{r}
+betas
+```
+
+Great! Now let's plot the distribution. We need to convert `betas` to a tibble so we can use `ggplot`:
+
+```{r}
+betas_tbl = tibble(betas)
+```
+
+Now plot:
+
+```{r}
+ggplot(data = betas_tbl, aes(x = betas)) + 
+  geom_histogram()
+```
+
+The Central Limit Theorem says that if we keep running simulations (i.e. infinite simulations), eventually this distribution will become perfectly normal and centered at the "true" value of $\beta_1$.
+
+## Checkpoint
+
+Use the code above to write `lm_sampler2` with **functional programming**. It should take two arguments, `sample_size = 30` and `n_sims = 100`, run the loop, and and return a tibble. 
+
+```{r checkpoint define lm_sampler2}
+lm_sampler2 = function(sample_size = 30, n_sims = 100){
+  betas = vector("double", length = n_sims)
+  for(i in seq_along(betas)){
+    betas[i] = diamonds %>% 
+      slice_sample(n = 30) %>% 
+      lm(formula = log(price) ~ table, data = .) %>% 
+      coef() %>% 
+      .[2]
+  }
+  betas_tbl = tibble(betas)
+  return(betas_tbl)
+}
+```
+
+
+## Checkpoint
+
+Run `lm_sampler2` for 10 simulations and plot the sampling distribution. Since `lm_sampler2` returns a tibble you can pipe the output straight to `ggplot`:
+
+```{r checkpoing test lm_sampler 10 times}
+lm_sampler2(sample_size = 30, n_sims=10) %>% 
+  ggplot(data = ., aes(x = betas)) + 
+  geom_histogram()
+```
+
+## Checkpoint
+
+Run `lm_sampler2` for 1000 simulations and plot the sampling distribution:
+
+```{r checkpoing test lm_sampler 1000 times}
+lm_sampler2(sample_size = 30, n_sims=1000) %>% 
+  ggplot(data = ., aes(x = betas)) + 
+  geom_histogram()
+```
+
+That's the Central Limit Theorem! 
+
+A nice extension is to re-write `lm_sampler2` so it also extracts the p-values of each regression. Then you can plot the hypothesis tests of the simulations and see how the false-positive error rate varies with a) the sample size in each simulation and b) the number of simulations. We leave this to the reader. 
+
+# Appendix
+
+## Preallocating memory
+
+Consider a program that loops over a vector with 10^8 elements and squares each element. 
+
+```{r big vector}
+big_vector = 1:10^3
+```
+
+No pre-allocation:
+
+```{r no preallocation}
+output_naive = c()
+length(output_naive)
+```
+
+With pre-allocation: 
+
+```{r with preallocation}
+output_preallocated = vector(mode = "double", length = length(big_vector))
+length(output_preallocated)
+```
+
+Run the speed tests. This requires the package `microbenchmark`. 
+
+**Heads up!** This might take awhile to run on your machine. 
+
+```{r naive speed test, message=FALSE}
+speed_tests = microbenchmark::microbenchmark(
+  ## the naive loop
+  "naive" = for(i in seq_along(big_vector)){
+    output_naive = append(output_naive, big_vector[i]^2)
+  },
+  ## the preallocated loop
+  "preallocated" = for(i in seq_along(big_vector)){
+    output_preallocated[i] = big_vector[i]^2
+  },
+  times = 100 # number of times to run the test
+)
+# plot the output 
+ggplot2::autoplot(speed_tests)
+```
+
+
+## `replicate()`
+
+R has a built-in function called `replicate` that will replicate a function many times. Learn more [here](https://www.rdocumentation.org/packages/Rpdb/versions/2.2/topics/replicate).
+
+## Using `map` with regular expressions
+
+Here is an example of mapping in a question I answered on Piazza. 
+
+The OP has a data set where each row is a firm and a column records violations. An example cell entry looks like this: 
+
+```{r violations eg 1}
+x1 = "23. PROPER DATE MARKING AND DISPOSITION - Comments: MUST PROVIDE DATE MARKINGS TO TCS/RTE FOODS, PREPARED ONSITE AND HELD IN COOLERS OVER 24 HRS. INSTRUCTED TO PROVIDE CONSUME BY DATES AND MAINTAIN. PRIORITY FOUNDATION 7-38-005 NO CITATION ISSUED. | 37. FOOD PROPERLY LABELED; ORIGINAL CONTAINER - Comments: MUST LABEL FOOD STORAGE CONTAINERS WITH COMMON FOOD NAMES; FLOUR, SUGAR, ETC., WHEN FOOD HAS BEEN REMOVED FROM ORIGINAL PACKAGING. INSTRUCTED TO MAINTAIN. | 41. WIPING CLOTHS: PROPERLY USED & STORED - Comments: MUST STORE WIPING CLOTHS IN PREP AREAS IN SANITIZER BUCKET BETWEEN USES TO PREVENT CROSS CONTAMINATION. INSTRUCTED TO MAINTAIN. | 47. FOOD & NON-FOOD CONTACT SURFACES CLEANABLE, PROPERLY DESIGNED, CONSTRUCTED & USED - Comments: FOUND TORN REFRIGERATION GASKETS ON MULTIPLE REFRIGERATION UNITS THROUGHOUT FACILITY. INSTRUCTED FACILITY TO REPLACE ALL TORN GASKETS AND MAINTAIN"
+```
+
+```{r violations eg 2}
+x2 = "36. THERMOMETERS PROVIDED & ACCURATE - Comments: 4-204.112(B) NOTED NO THERMOMETERS INSIDE FOUR DISPLAY COOLER UNITS CONSPICUOUSLY POSTED TO MONITOR THE AMBIENT AIR TEMPERATURE OF EQUIPMENT. INSTRUCTED TO EQUIP ALL REFRIGERATION UNITS WITH ACCURATE AND WORKING THERMOMETERS. | 53. TOILET FACILITIES: PROPERLY CONSTRUCTED, SUPPLIED, & CLEANED - Comments: 5-501.17 OBSERVED NO COVERED RECEPTACLE (WASTE CAN WITH LID) IN UNISEX EMPLOYEE WASHROOM. INSTRUCTED TO PROVIDE COVERED WASTE RECEPTACLE. "
+```
+
+
+Suppose you wanted to **count** the number of unique violations for each firm and make that into a new column. Looks like each violation is uniquely identified with a number (e.g.,  "23. PROPER DATE MARKING AND DISPOSITION") and specifically this pattern: "##. " (i.e. number then period then space). 
+
+This is a problem of [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) You can use [`stringr`](https://stringr.tidyverse.org/) to do regular expressions. It ships with the `tidyverse`. 
+
+You can solve this problem with `str_match_all()`, a function that looks for and returns all instances of a text pattern. The hardest part is to correctly specifying the pattern (regex is a **huge** pain). In our case, we need to use `"[0-9]+\\.\\s"`. This says:
+
+* look for a number (`[0-9]`)...
+* ...that ends with a period (`\\.`)...
+* ...and whose period is followed by a space (`\\s`)
+
+```{r regex1}
+x1 %>% 
+  str_match_all("[0-9]+\\.\\s")
+```
+
+and 
+
+```{r regex2}
+x2 %>% 
+  str_match_all("[0-9]+\\.\\s")
+```
+
+`str_match_all` returns a list. You can convert it to a vector with `unlist()`:
+
+```{r regex3}
+x1 %>% 
+  str_match_all("[0-9]+\\.\\s") %>% 
+  unlist()
+```
+
+and now you can count the unique violations just by counting the length of the list:
+
+```{r regex4}
+x1 %>% 
+  str_match_all("[0-9]+\\.\\s") %>% 
+  unlist() %>% 
+  length()
+```
+
+Now, these entries are in columns of a tibble:
+
+```{r regex df}
+df = tibble("violations" = c(x1,x2))
+df
+```
+
+So the challenge is to **map** this procedure onto each element of the column. 
+
+First code-up the violations-counter in a function:
+
+```{r regex function}
+get_violations = function(x){
+  n_violations = vector("double", length = length(x))
+  for(i in seq_along(x)){
+    n_violations[i] = x[i] %>% 
+      str_match_all("[0-9]+\\.\\s") %>% 
+      unlist() %>% 
+      length()
+  }
+  return(n_violations)
+}
+```
+
+then **map** it to the data and add a new column:
+
+```{r regex map function}
+df$n_violations = df %>% 
+  select(violations) %>% 
+  map(get_violations) %>% 
+  unlist()
+```
+
+giving you:
+
+```{r regex results}
+df %>% 
+  select(n_violations)
+```

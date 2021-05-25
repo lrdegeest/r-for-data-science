@@ -1,0 +1,19 @@
+---
+title: "Title"
+subtitle: "R For Data Science"
+author: "LDG"
+output: 
+  html_notebook:
+    number_sections: true
+    theme: readable
+    highlight: pygments
+    toc: true
+    toc_float: 
+      collapsed: yes      
+---
+
+# Set-up {-}
+
+```{r load packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+```

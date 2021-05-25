@@ -1,0 +1,479 @@
+---
+title: "Exploratory Data Analysis"
+subtitle: "R for Data Science"
+author: "LDG"
+output: 
+  html_notebook:
+    number_sections: true
+    theme: readable
+    highlight: pygments
+    toc: true
+    toc_float: 
+      collapsed: yes      
+---
+
+# Set-up {-}
+  
+Load the `tidyverse`:
+
+```{r load tidyverse, message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+## Acknowledgements {-}
+
+This notebook is based on Chapter 7 in *R for Data Science* (Grolemund and Wickham 2020). It does a nice treatment of the `diamonds` data set. So we will look at some other examples.
+
+# Model building
+
+Models are about **compressing** information: take many data points and compress them into a summary. Throw out information to gain information!
+
+The estimator (i.e. model) for the **unconditional** population mean is a form of compression:
+
+$$
+E[X] = \frac{1}{n} \sum_{i=1}^n x_i
+$$
+
+Take $n$ observations and compress them into one summarization of central tendency. 
+
+The same principle applies if we run a fancier estimator (e.g., regression, estimator for the **conditional** population mean). Models produce "insight" because they compress information. 
+
+## Building up to building models
+
+Before we can build models we first need to figure out what should go in them.
+
+Say we have some outcome of interest $y$ (e.g., number of website visitors). We think the number of unique visitors is a **function of** some variables:
+
+$$
+y = f(\cdot)
+$$
+
+and if we new a) what those variables were and b) **how** they influence the outcome, we would have a good idea how to increase readership. 
+
+This is **exploratory data analysis (EDA).** 
+
+At a shallow level EDA boils down to calculating sumamry statistics and making plots.
+
+But the bigger picture behind EDA is figuring out what goes inside $f(\cdot)$ so you can build (and estimate the parameters of) a model.
+
+## Types of models
+
+Remember there are roughly two types of models:
+
+* models that **predict** ("*what*" will people buy?")
+* models that **infer** ("*why*" will people buy it?")
+
+**Prediction** is the domain of traditional machine learning. You don't necessarily care about **why** -- you just want to generate the most accurate prediction possible. 
+
+**Inference** is about **hypothesis testing**: the "how" or "why" some variables affect others. 
+
+In this notebook we will focus on inference. Specifically, we will use EDA to generate testable hypotheses.
+
+# Height
+
+Let's start with a trivial example: variation in height across males and females. 
+
+Re-load the `nhanes` survey data:
+
+```{r load nhanes, message=FALSE}
+# data hosted on data.world page 
+nhanes = read_csv("https://query.data.world/s/k5y6uqf7xhsjqwcpldplc6kvytjtoy")
+```
+
+We have basic medical data of over 10,000 randomly surveyed individuals (the survey was carried out by the CDC). One of those variables is `height`. 
+
+How is height distributed in our sample? Let's plot a histogram
+
+```{r histogram height}
+ggplot(data = nhanes, aes(x = height)) + # fill this in!
+  geom_histogram() 
+```
+
+Height is clearly normally distributed around it's mean: 
+
+```{r mean height}
+nhanes %>% 
+  summarise(mean(height))
+```
+
+
+So if we were to randomly draw somebody from the sample using `slice_sample` (another of the `slice` family of operators):
+
+```{r slice_sample}
+# try playing this chunk many times!!
+nhanes %>% # take the data
+  slice_sample(n=1) %>% # draw one random person
+  select(height) # view their height
+```
+
+more often than not we will draw somebody whose height is close to the mean height. 
+
+## Height by sex
+
+But what if we were to randomly draw two people: one male, one female? Play this chunk a few times:
+
+```{r slice_sample by sex, message=FALSE}
+# try playing this chunk many times!!
+nhanes %>% # take the data
+  group_by(sex) %>% # group observations by sex
+  slice_sample(n=1) %>% # draw one random person (from each sex)
+  select(height) # view their height
+```
+
+More often than not it seems like we are drawing a male taller than the female. This would suggest that men are **systematically** taller than women. 
+
+We could plot the distributions of height by sex (in one panel, using `fill`):
+
+```{r histogram height by sex}
+ggplot(data = nhanes, aes(x = height, fill = sex)) + 
+  geom_histogram()
+```
+
+OK, looks like there is a clear difference in the distributions. But this plot covers up the right half of the female distribution. Can we clean it up? 
+
+Let's use a 75% transparency (`alpha = 0.75`) and position the histograms "side-by-side" (`position = "identity"`):
+
+```{r better histogram height by sex}
+ggplot(data = nhanes, aes(x = height, fill = sex)) + 
+  geom_histogram(alpha = 0.75, position = "identity")
+```
+
+## Generating a hypothesis
+
+So yes, it looks like the distributions are different. We could calculate the averages by sex:
+
+```{r average height by sex, message=FALSE}
+nhanes %>% 
+  group_by(sex) %>% 
+  summarise(mean(height))
+```
+
+
+```{r}
+174.7421 - 161.2393
+```
+
+and now think about a hypothesis: on average, men are taller than women -- not just in this sample, but in the **population from which this sample was drawn.** 
+
+More specifically we can formulate a **null** and **alternative** hypothesis:
+
+* Null: no relationship between sex and height (hence "null")
+* Alternative: some relationship between sex and height 
+
+We want to see if our data provides evidence to support the alternative hypothesis. This is **inference** in a nutshell.
+
+## Testing the hypothesis
+
+We can test our hypothese with a model where height is a function of sex plus some random error ($\epsilon$):
+
+$$
+\text{height} = f(\text{sex}) + \epsilon 
+$$
+
+Now we have to choose the **functional form** of $f()$. The simplest is a line:
+
+$$
+\begin{aligned}
+\text{height}   &= f(\text{sex}) + \epsilon \\
+                &= \beta_0 + \beta_1(\text{sex}) + \epsilon 
+\end{aligned}
+$$
+and use `lm()` (for "linear model") to estimate the parameters $\beta_0$ (the intercept) and more importantly $\beta_1$ (the relationship between sex and height) and then `summary()` to view the results (coefficient estimates and inference):
+
+```{r}
+lm(formula = height ~ sex, data = nhanes) %>% # estimate the model
+  summary()  # view the coefficients AND hypothesis tests
+```
+
+Ample evidence to support the alternative hypothesis. On average, men are taller than women.
+
+```{r}
+nhanes %>% 
+  mutate(sex_n = ifelse(sex == "Male", 1, 0)) %>% # the latest output of this pipe is '.'
+  lm(formula = height ~ sex_n, data = .) %>% 
+  summary()
+```
+
+
+## `lm()`
+
+In another notebook we'll talk more about linear models. For now, just note that `lm()` takes two arguments:
+
+* `formula = `: the model formula. `y ~ x` means $y = f(x)$.
+* `data = `: the data that house the variables used in `formula`
+
+# Avocados
+
+Let's consider a more interesting example: demand for organic avocados.
+
+Here is some data on avocados [Kaggle](https://www.kaggle.com/neuromusic/avocado-prices/) thanks to the [Hass Avocado Board](https://hassavocadoboard.com/):
+
+```{r load avocados, warning=FALSE, message=FALSE}
+avocados = read_csv("https://query.data.world/s/zxsez6vfybv2fwaeorrgy3fufxsvnn")
+```
+
+## Checkpoint 
+
+Plot a histogram of avocado prices (`AveragePrice`).
+
+```{r checkpoint avocado histograms}
+
+```
+
+## Checkpoint 
+
+Now plot a histogram of avocado prices by organice/not organic (`type`). Make sure to handle overlapping distributions.
+
+```{r checkpoint avocado histograms by type}
+
+```
+
+## Checkpoint
+
+Use `lm()` and `summary()` to estimate a model of avocado prices as a linear function of avocado type
+
+```{r checkpoint lm avocado type}
+
+```
+
+## Demand shifts
+
+OK, but does this price shift lead to a demand shift?
+
+If so, we should expect the demand curve shift will down for organic avocados. 
+So let's look at sales of avocados and see if there is a relationship between sales and avocado type. 
+
+### Renaming columns
+
+Unfortunately some of the column names have spaces in them:
+
+```{r colnames}
+colnames(avocados)
+```
+
+including the column on sales, "Total Volume". R will throw an error if we try to plot its distribution because it will think "Total" and "Volume" are separate objects:
+
+```{r histogram bad column name}
+ggplot(data = avocados, aes(x = Total Volume)) + 
+  geom_histogram()
+```
+
+We can use `rename()` to rename that column:
+
+```{r rename wrong}
+avocados = avocados %>% # make sure you reassign the data!
+  rename(TotalVolume = Total Volume)
+```
+
+Argh. Why won't this work? Now you see why spaces are so annoying!
+
+(You might say it's the "pits"...https://tinyurl.com/yyawvnwn)
+
+To "escape" the space we have to wrap the old name in quotes:
+
+```{r rename right}
+avocados = avocados %>% # make sure you reassign the data!
+  rename(TotalVolume = "Total Volume")
+```
+
+## Demand shifts (continued)
+
+OK, now we're in business: 
+
+```{r histogram sales}
+ggplot(data = avocados, aes(x = TotalVolume)) + 
+  geom_histogram()
+```
+
+Sales are highly skewed. That means the average is not representative. So if we build a model about the **conditional** average (e.g., average sales conditional on avocado type), it won't be useful. 
+
+Fortunately we know that we can **transform** data onto a new scale without changing it's underlying information (we saw this when we did z-scores).
+
+A common method to transform a non-normal variable into a normal variable is the **log transformation.** (Just make sure you don't have negative or zero values! To see why, try typing `log(0)` and `log(-1)` in your console.)
+
+### Checkpoint
+
+Use `mutate()` and `log()` to create a new variable called "log_sales" that log transforms `TotalVolume`.
+
+```{r checkpoint log transform}
+
+```
+
+### Checkpoint
+
+Plot the distribution of `log_sales`:
+
+```{r checkpoint log sales distribution}
+
+```
+
+(More) normally distributed!
+
+### Checkpoint
+
+Make a scatter plot of log sales as a function of price. Use a transparency (try different values of `alpha`!) Hint: `alpha` can go inside `geom_point()`, just like we did with `geom_histogram()`.
+
+```{r sales over prices}
+
+
+```
+
+### Checkpoint
+
+Now re-do the plot and this time add `geom_smooth(method = "lm")`. This will add a regression line to the plot.
+
+```{r sales over prices with lm}
+
+```
+
+### Checkpoint
+
+Estimate the parameters of that line with `lm()` and `summary()`:
+
+```{r checkpoint lm price sales}
+
+```
+
+### Checkpoint
+
+Now, re-plot the scatterplot of log sales and avocado type with a regression line, but this time use `facet_wrap()` to make separate panels for conventional and organic avocados:
+
+```{r sales over prices with lm and facet}
+
+```
+
+## Demand shifts: bringing it all together
+
+Notice two key things in that last plot:
+
+1. the **intercept** of the regression line for organic avocados shifted down relative to the intercept for conventional avocados
+2. the **slope** of the regression lines look different; the relationship between price and sales varies across avocado types
+
+Now we have a good idea of a model we can build that summarizes the demand for avocados. The model should:
+
+* allow the intercept to vary by avocado type, and;
+* allow the slope to vary by avocado type
+
+Here is such a model that includes a **dummy variable** (to capture the changing intercept) and an **interaction effect** (to capture the changing slope):
+
+$$
+\text{log(sales)} = \beta_0 + \beta_1(\text{price}) + \beta_2(\text{organic}) + \beta_3(\text{price} \times \text{organic}) + \epsilon
+$$
+
+Let's estimate the parameters with `lm()`:
+
+```{r avocado model}
+lm(formula = log_sales ~ AveragePrice + type + AveragePrice*type, data = avocados) %>% 
+  summary()
+```
+
+What does this model say?
+
+* The intercept for conventional avocados is 14.49652
+* The shift in the intercept from conventional to organic is -3.87157
+* The effect of price on sales (the slope) for coventional is -1.16907
+* The shift in the slope from conventional to organic is 0.48246
+
+So it seems that people who buy organic avocados are less sensitive to changes in price!
+
+Of course, take this analysis with a grain of salt. 
+
+There are probably several confounders to address, like variation in prices over time and across regions. 
+
+Also, who is buying these avocados? This might explain why we see a right shift in volume for conventional avos. Is it folks like us at the store? Restaurants buying in bulk? We don't know. 
+
+# Blood pressure
+
+Let's go back to `nhanes` and consider a more interesting example: variation in blood pressure **over time** and **by sex**. 
+
+When your heart beats, it creates pressure to circulated oxygenated blood throughout your body. That pressure has two parts, **systolic** and **diastolic**.
+
+That is why when they take your blood pressure they say "120 over 80" (units of millimeters of mercury, or mmHg), meaning 120 systolic over 80 diastolic. 120/80 is considered a normal blood pressure. Anything above 130 systolic is considered high blood pressure.
+
+The harder your blood travels the more it deteriorates your cardiovascular system. This excess force is [**hypertension**](https://en.wikipedia.org/wiki/Hypertension) or high blood pressure. Over time hypertension can lead to a number of health issues.
+
+In `nhanes` the variable `bpsystol` captures systolic blood pressure.
+
+## Checkpoint 
+
+Calculate average systolic blood pressure by sex:
+
+```{r checkpoint average systolic by sex, message=FALSE}
+
+
+```
+
+## Checkpoint 
+
+Plot the distribution of systolic blood pressure by sex:
+
+```{r checkpoint distribution systolic by sex}
+
+```
+
+## Blood pressure over time
+
+It doesn't look like there is much a of difference in the **unconditional average** blood pressure between men and women. 
+
+But what if we need to look at the **conditional average**? For instance, what if blood pressure varies over time (`age`)?
+
+### Checkpoint
+
+First plot the `bpystol` as a function of `age`. Include a regression line.
+
+```{r checkpoint bpystol over age}
+
+
+```
+
+### Checkpoint
+
+That plot is a bit messy. Let's simplify it. Now plot **average** blood pressure by age. Include a regression line. To do this, first use `summarise` and create a variable called "mean_bpsystol" **by** `age`, then pipe (`%>%`) the output to `ggplot`. (You might find it helpful to first build the summary table). Don't include a regression line.
+
+```{r checkpoint average bpystol over age, message=FALSE}
+
+
+```
+
+### Checkpoint
+
+Does this relationship vary by sex? 
+
+Re-do that plot, but this time by age **and** sex. Instead of `fill=` use `color=` to color the plot by `sex`:
+
+```{r checkpoint average bpystol over age and sex, message=FALSE}
+
+
+```
+
+## Modeling the relationship
+
+When we plot average systolic blood pressure by age for men and women, we see an upward trend in both sexes, but not necessarily the same trend. The lines do not look parallel. 
+
+Another way to think about is that the slope of the lines for age are different for men and women. In the graph it looks like the effect of age is more pronounced -- the slope is steeper -- among women. 
+
+Based on our exploratory analysis we might consider the following model:
+
+$$
+\text{blood pressure} = \beta_0 + \beta_1 \text{age} + \beta_2 \text{sex} + \beta_3 (\text{sex} \times \text{age}) + \epsilon
+$$
+
+### Checkpoint
+
+Modify the model we estimated for avocado sales to estimate the model above. Recall that inside `lm()` we can interact two variables `x1` and `x2` by typeing `x1*x2`.
+
+```{r checkpoint model bpsystol}
+
+```
+
+Interestingly, the effect of age on blood pressure among men, `sexMale:age`, is **negative**. 
+
+Meaning that as men age, their blood pressure goes up (because the average effect of age is positive), but slower than for women (because the interaction effect is negative).
+
+The general takeaway is that a patient should be compared against the right benchmark. For instance, we can't just compare a male patient's blood pressure against the overall average. They need to be compared to the average male at the same age.
+
+# Big picture
+
+Don't worry if you haven't followed every step, especially the stuff with `lm()`. We'll do more of that later. 
+
+For now, just notice how we were able to use summary statistics and plots to generate hypotheses, build models, and then estimate those models to compress the data and create insights. 

@@ -1,0 +1,401 @@
+---
+title: "Nonlinear Models"
+subtitle: "R for Data Science"
+author: "LDG"
+output: 
+  html_notebook:
+    number_sections: true
+    theme: readable
+    highlight: pygments
+    toc: true
+    toc_float: 
+      collapsed: yes      
+---
+
+# Set-up {.unnumbered}
+
+```{r load packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(broom)
+# make sure you have also installed the AER package: install.packages("AER")
+```
+
+## Caveats
+
+This is **very** shallow discussion of non-linear models and logistic regression. We leave many details to the reader.
+
+# Predicting mortgage applications
+
+Here are some mortgage applications from Boston in 1990: 
+
+```{r load admissions data, message=FALSE}
+data(HMDA, package = "AER")
+slice_head(HMDA, n = 5)
+```
+
+The outcome of interest is the variable `deny`, indicating whether a mortgage application was denied ("no"). We might believe that the probability of denial is a function of `pirat` -- the payment to income (PI). Applications are more likely to be denied when payments are a larger share of an applicant's income (PI $\rightarrow$ 1). 
+
+We can model this relationship with a **linear probability model**:
+
+$$
+P(\text{deny} = \text{yes} | \text{PI}) = P(\text{deny} = 1| \text{PI}) = \beta_0 + \beta_1(\text{PI}) + \epsilon 
+$$
+and can estimate the parameters of our model with `lm()` -- or we can use `glm` (for "generalized linear model") and specify the outcome as `gaussian` (i.e. normally distributed, the standard OLS assumption):
+
+
+```{r estimate linear model admissions}
+# first mutate a numerical response variable
+## in R the **response** variable always has to be numeric
+## but the **features** or right-hand side variables can be characters or factors
+HMDA = HMDA %>% 
+  mutate(deny_numeric = ifelse(deny == "yes",1, 0))
+
+# estimate the linear probability model (lpm)
+lpm = HMDA %>% 
+  glm(formula = deny_numeric ~ pirat, data = ., family = "gaussian")  
+  
+# summary  of the linear probability model
+lpm %>% 
+  summary()
+```
+
+As we suspected, higher PI ratios are positively correlated with application denials. 
+
+## Issues with the linear probability model
+
+Our model is easy to interpret because the marginal effect of PI on the probability of denial is constant. You can see this by taking the partial derivative with respect to GPA:
+
+$$
+\frac{\partial P(\text{deny} = 1| \text{PI}) }{\partial \text{PI}} = \beta_1
+$$
+
+But there are issues with this model.
+
+The biggest issue is that it violates the OLS assumption of **homoskedasticity** or constant variance in the errors.
+
+We can see this by plotting the **residuals** of our model: the difference between observed admissions and predicted admissions.
+
+Let's use `broom::augment()` to generate residuals from our model:
+
+```{r residuals linear probability model}
+lpm %>% 
+  augment() %>% 
+  slice_head(n=5)
+```
+
+the column `.resid` shows us the residuals.
+
+In linear models we assume the residuals are normally distributed with a mean of zero and standard deviation of one. And they should be independent of the "features" or right-hand side variables.
+
+So if we plot the residuals against, say, GPA, we should no patterns whatsoever:
+
+```{r plot residuals linear probability model}
+lpm %>% 
+  augment() %>% 
+  ggplot(data = ., aes(x = pirat, y = .resid)) + 
+  geom_point()
+```
+
+but we clearly see a pattern! The assumption of homoskedasticity is very much violated.
+
+Why is this a big deal?
+
+Because it affects **inference**. The standard errors of the coefficients are wrong, which means the p-values are wrong, and our conclusions from our hypothesis tests **may** be wrong.
+
+# From linear to linear
+
+Today we'll explore a **logistic regression** -- a model that improves **inference** in the linear probability model. It is also a commonly used technique for **prediction** of binary outcomes.
+
+The logistic model is a special case of a general theory of models in linear models become non-linear models by way of a **link function**.
+
+## Link functions
+
+The *linear probability model* violates the assumption of non-constant variance. It is also flawed when it comes to predictions. Since OLS assumes a continuous outcome bounded below by negative infinity and above by infinity, it can generate any real values. This is a problem if you want to predict probabilities. They have to be between 0 and 1!
+
+So we need some mapping -- some function -- that ensures our model spits out true probabilities (values between zero and one) for any inputs to the model (in this case: GPA, GRE, and school rank).
+
+This mapping is known as a **link function** $F(\cdot)$:
+
+$$
+P(\text{deny} = 1| \text{PI}) = F(\beta_0 + \beta_1\text{PI}+ \epsilon) 
+$$
+
+All we've done is pass the linear model into a $F(\cdot)$. But this changes the model dramatically. Now it's non-linear!
+
+To see this, take the derivative of GPA using the Chain Rule:
+
+$$
+\frac{\partial P(\text{deny} = 1| \text{PI})}{\partial \text{PI}} = \beta_1F'(\beta_0 + \beta_1\text{PI}+ \epsilon)
+$$
+
+The marginal effect is no longer constant. In the linear model it was simply $\beta_1$ (a constant). Now it depends not only on $\beta_1$ but also the value of the rest of the parameters in $F(\cdot)$. This will be clearer when we visualize it.
+
+You often hear about "probit" and "logit" models. The choice between a **probit** or a **logit** boils down to our choice of link function. Both models will produce similar results, though the logit model has some advantages when it comes to interpretation.
+
+## Logit
+
+The link function in the logit model is the [logistic function](https://en.wikipedia.org/wiki/Logistic_function):
+
+$$
+P(\text{admit} = 1 | \mathbf{X}\beta)  = \frac{\text{exp}( \mathbf{X}\beta)}{1 + \text{exp}( \mathbf{X}\beta)} = \frac{1}{1 + \text{exp}(-\mathbf{X}\beta)}
+$$
+
+where $\text{exp} = e$ is the natural exponent. Let's break this down.
+
+Take some outcome $a$. The probability of $a$ is $P(a)=p_a$. The **odds** of $a$ are then the ratio of the probability and its compliment:
+
+$$
+\text{odds}_a = \frac{p_a}{1 - p_a}.
+$$
+
+If we take logarithms we end up with the **logit** or log-odds:
+
+$$
+\text{logit}(p_a) = \text{log} \frac{p_a}{1 - p_a}.
+$$
+
+The goal is use some data $\mathbf{X}$ to estimate $p_a$. The output -- the probability -- has to be between zero and one. But the input -- the data -- may come in many flavors (e.g. discrete or continuous) up and down the real number line.
+
+The logit gives us the transformation we want: the probability is constrained between zero and one ($p_a \in [0,1]$), but the log-odds or logit can be any real number ($\text{logit}(p_a) \in (-\infty, \infty)$).
+
+So if we want to model $p_a$ as function of our data, we can instead model $\text{logit}(p_a)$:
+
+$$
+\text{logit}(p_a) = \text{log} \frac{p_a}{1 - p_a} = \mathbf{X}\beta
+$$
+
+and then calculate $p_a$ by taking the inverse logit:
+
+$$
+P (a | \mathbf{X}\beta) = \text{logit}^{-1}(\mathbf{X}\beta) = \frac{1}{1 + \text{exp}(-\mathbf{X}\beta)} =  \text{logistic}(\mathbf{X}\beta) 
+$$
+
+and hence "logistic regression".
+
+To see this in action we can code up a logistic function:
+
+```{r logistic function}
+link_logistic = function(x){
+  probability = 1/(1 + exp(-x))
+  return(probability)
+}
+```
+
+and if we recall our linear probability results:
+
+```{r lpm summary 2}
+# summary of linear probability model
+lpm %>% 
+  summary()
+```
+
+The predicted probability an application will be denied for PI = 1.75 is 
+
+```{r lpm prediction}
+-0.07991 + 0.60353 * 1.81
+```
+which is impossible! But if we feed it through our link function we get a more useable prediction:
+
+```{r lpm link prediction}
+link_logistic(-0.07991 + 0.60353 * 1.81)
+```
+
+In general the linear probability can produce predicted probabilities above 1 and below 0:
+
+```{r visualize lpm}
+HMDA %>% 
+  ggplot(data = ., aes(x = pirat, y = deny_numeric)) +
+  geom_point() + 
+  geom_smooth(method = "glm", method.args = list(family = "gaussian"))
+```
+But if we re-estimate the model by characterizing the response as "binomial" (as in binomial random variable), it passes the linear model through the logistic link function:
+
+```{r visualize binomial model}
+HMDA %>% 
+  ggplot(data = ., aes(x = pirat, y = deny_numeric)) +
+  geom_point() + 
+  geom_smooth(method = "glm", method.args = list(family = binomial(link = "logit")))
+```
+
+and we get predictions exclusively between zero and one. 
+
+But better predictions come at the cost of harder interpretations. In the binomial model the marginal effect of PI is non-constant. You can see this in the graph: the derivative of the blue line (the marginal effect of `pirat`) depends on the value of `pirat`. That is not the case of for the Gaussian model, where the derivative of the blue line (the slope) is constant along the x-axis. In general, it makes more sense to **visualize** non-linear models rather than focus on coefficient estimates.
+
+# Logistic regression
+
+Let's re-estimate our model as a logistic regression. All we have to do is switch the "gaussian" flag to "binomial". This model cannot be estimated with OLS. Instead it uses **maximum likelihood**, which sets up a "likelihood function" and maximizes it by finding the values of $\beta_0$ and $\beta_1$ that solve the first-order condition (first-derivative equal to zero). 
+
+```{r estimate bpm}
+# estimate binomial probability model (bpm)
+HMDA %>% 
+  glm(formula = deny_numeric ~ pirat, data = ., family = binomial(link = "logit"))  %>% 
+  summary()
+```
+
+## Interpretation
+
+The big picture is the same: `pirat` is significantly and positively correlated with application denials. 
+
+But the exact interpretation is trickier. The number 5.8845 is **not** the average marginal effect like it is in the linear probability model. Instead it is the "log-odds" of denial. There is nothing intuitive about this. And more importantly we saw that the marginal effect is non-constant across PI.
+
+It's easier to understand non-linear models by plotting them. We'll use `broom::augment(type.predict = "response")` to get the fitted values of our model and then plot them: 
+
+```{r estimate bpm and plot}
+HMDA %>% 
+  # estimate binomial probability model (bpm)
+  glm(formula = deny_numeric ~ pirat, data = ., family = binomial(link = "logit"))  %>% 
+  # tidy and augment the model object with fitted values (and other stuff)
+  augment(type.predict = "response") %>% 
+  # plot the predicted probabilities of denial against PI
+  ggplot(., aes(x = pirat, y = .fitted)) + 
+  geom_line()
+```
+
+We can interpret the results by looking at how the curve changes across values of PI. Most of the action happens between PI between 0 and 1. The probability of denial appears to ramp up at around 0.10 and then flattens out above 1. Very small changes in PI can lead to big changes in the probability an application is denied!
+
+### Odds ratios
+
+You will often see coefficient estimates reported as **odds ratios**, or $e^{\hat{\beta}}$ (the natural exponent of an estimated coefficient). Odds ratios make sense for **discrete** predictors since their derivatives don't exist (derivatives only exist for continuous variables).
+
+For example, what if other factors besides PI affect loan denial? If we fail to control for them our model will suffer from **omitted variable bias**. The `HMDA` data is famous for showing systematic loan denial for African-Americans, controlling for PI:
+
+```{r estimate bpm with afam}
+HMDA %>% 
+  glm(formula = deny_numeric ~ pirat + afam, data = .,  family = binomial(link = "logit"))  %>% 
+  summary()
+```
+In the data race is **not** continuous (there is no race continuum: an applicant either is or is not African-American). To more interpret the coefficient on `afamyes` (an African-American applicant) we can calculate the odds-ratio:
+
+```{r odds afamyes}
+exp(1.2728)
+```
+
+which says that on average and controlling for PI, an African-American applicant compared to a white applicant is (or rather, was -- the data are from 1990) almost four times more likely to see their mortgage application rejected. 
+
+Still, it's easier to understand this model if we plot it:
+
+```{r estimate bpm with afam and plot}
+HMDA %>% 
+  glm(formula = deny_numeric ~ pirat + afam, data = .,  family = binomial(link = "logit"))  %>% 
+  # tidy and augment the model object with fitted values (and other stuff)
+  augment(type.predict = "response") %>% 
+  # plot the predicted probabilities of denial against PI
+  ggplot(., aes(x = pirat, y = .fitted, color = afam)) + 
+  geom_line() 
+```
+That separation between the curves is the "race effect". 
+
+## Putting it all together
+
+Let's estimate a model including `pirat`, `afam`, `lvrat` (loan-to-value ratio), `mhist` (credit score) and `hirat` (inhouse expense-to-total-income ratio)
+
+
+```{r bpm full model}
+bpm = HMDA %>% 
+  glm(formula = deny_numeric ~ pirat , data = .,  family = binomial(link = "logit")) 
+```
+
+Now let's get the predicted probabilities with `augment(type.predict = "response")`
+
+
+```{r bpm}
+# get a tidy data frame with predicted probabilities
+bpm_predictions = bpm %>% 
+  augment(type.predict = "response") 
+
+# first five rows
+bpm_predictions %>%  slice_head(n=5)
+```
+
+### Predictions and error
+
+OK, now we can make some cold predictions. Let's use a rule-of-thumb: if a predicated probability is greater than 0.5, the application is denied. We can then calculate the error: the **absolute** difference between observed and predicted denials. 
+
+So we need to `mutate` two variables:
+
+```{r predict denial}
+bpm = bpm_predictions %>% 
+  # predicted denial
+  mutate(predicted_deny= ifelse(.fitted > 0.5, 1, 0)) %>% 
+  # difference between 
+  mutate(error = abs(deny_numeric - predicted_deny))
+```
+
+What was our **average** error rate?
+
+```{r average error}
+bpm %>% 
+  summarise(mean(error))
+```
+
+About 12%. 
+
+
+# Checkpoint
+
+Using the `nhanes` data:
+
+```{r load nhanes, message=FALSE}
+nhanes = read_csv("https://query.data.world/s/k5y6uqf7xhsjqwcpldplc6kvytjtoy")
+```
+
+build a logistic regression that estimates the probability of a heart attack (`heartatk`) as a function of `age` and `sex`:
+
+```{r heart attack model}
+# estimate the model
+
+
+# view the results
+
+```
+
+What are the odds that an average male (controling for age) will suffer a heart attack compared to a female?
+
+```{r odds male heart attack}
+
+```
+
+Plot the predicted probability of a heart attack over time and by sex:
+
+```{r plot probability heart attack}
+
+```
+
+
+
+# Appendix
+
+## Probit
+
+Probit regression is the bedfellow of logistic regression and produces very similar results. Choosing between one or the other is often just a matter of taste or convention.
+
+The probit (short for "probability unit") model uses the Standard Normal CDF (cumulative distribution function) as the link function. 
+Consider some outcome $y$ and data $\mathbf{X}$. The probit model is
+
+$$
+P(y=1 | \mathbf{X}\beta) = \Phi(\mathbf{X}\beta + \epsilon)
+$$
+
+where $\Phi \sim N(\mu=0,\sigma^2 = 1)$ is the Standard Normal CDF (e.g. $\Phi(0) = 0.5$; half the standard normal distribution lies below $\mu = 0$).
+
+If we assume $\varepsilon \sim N(0,1)$ so that $\mathbb{E}[\varepsilon] = 0$, then we simply have
+
+$$
+P(y=1 | \mathbf{X}\beta) = \Phi(\mathbf{X}\beta)
+$$
+
+or
+
+$$
+P(y=1 | \mathbf{X}\beta) = \Phi(z \leq \mathbf{X}\beta).
+$$
+
+In other words, we can think of some predicted value as a $\mathbf{z}$-score which gets turned into a probability by $\Phi(\cdot)$. The coefficients therefore describe the *change* in the $z$-score (e.g., "a one-unit change in $x$ is associated with a $\beta_1$ change in the z-score.")
+
+To estimate the model just change the flag for the link function from "logit" to "probit":
+
+```{r bpm full model probit}
+HMDA %>% 
+  glm(formula = deny_numeric ~ pirat + afam + lvrat + mhist + hirat, data = .,  family = binomial(link = "probit")) %>% 
+  summary()
+```

@@ -1,0 +1,373 @@
+---
+title: "Introduction to R (Completed Notebook)"
+subtitle: "R for Data Science"
+author: "LDG"
+output: 
+  html_notebook:
+    number_sections: true
+    theme: readable
+    highlight: pygments
+    toc: true
+    toc_float: 
+      collapsed: yes
+---
+
+# R The calculator
+
+The simplest way to use R is as a calculator. 
+
+For example, the code below calculates $1+1$. Click "run" (the green play button) to see:
+
+```{r calc1}
+1+1 # add one and one
+```
+
+Notice the part after "#" (inside a code chunk) is not executed because it as a **comment.** Write comments to remind yourself (or rather, your future self, who will read the code later) what the code does.
+
+Here is another example. This code calculates $2^3 + 4 \times 5 + \frac{5}{6}$:
+
+```{r calc2}
+2^3 + 4*5 + 5/6 # two to the third plus four times five plus five divided by six
+```
+
+## Checkpoint
+
+Calculate $2^2 \times 3^3$:
+
+```{r checkpoint calc1}
+2^2 * 3^3
+```
+
+Calculate $2/3 + 4/5 + 6/7$:
+
+```{r checkpoint calc2}
+2/3 + 4/5 + 6/7
+```
+
+Calculate $2^3 + 4*5 + 6^7$:
+
+```{r checkpoint calc3}
+2^3 + 4*5 + 6^7
+```
+
+## Objects
+
+OK, we can use R to make calculations.
+
+But what if we want to save the output of one calculation and use it in another calculation?
+
+R has memory. What does it remember? Whatever you tell it to! This is called **defining objects**.
+
+Suppose we want to calculate $1+1$ and store it in an object. We have to give it a name. Let's call it "x":
+
+```{r objects1}
+x = 1 + 1
+```
+
+Notice two things:
+
+1. `=` is the **assignment operator**. It says: "take 1+1 and assign its *output* to `x`.
+2. When we run the code, `x = 1 + 1`, nothing spits out. That's because the output is **stored** in `x`.
+
+What happens if we calculate $x+2$
+
+```{r objects2}
+x + 2
+```
+
+It's the same as calculating $(1+1)+2$. 
+
+Let's create another object called "my_object" equal to $x \times 4$:
+
+```{r objects3}
+my_object = x * 4
+```
+
+## Vectors
+
+Vectors are objects with multiple values. 
+
+For example, here is a vector with the values $1,2,3,4$ called "data_vector":
+
+```{r vec1}
+my_vector = c(1,2,3,4) # create a vector
+my_vector # then print it to the screen
+```
+
+We can multiply each value by 2:
+
+```{r vec2}
+my_vector * 2
+```
+
+and we multiply each value by 2 and create a new vector (e.g., "data_new_vector"):
+
+```{r vec3}
+data_new_vector = my_vector * 2
+```
+
+Vectors can also contain words -- also referred to as "strings" or "characters". 
+
+For instance, here is a vector with the words "hello" and "world":
+
+```{r vec4}
+character_vector <- c("hello", "world") # make the vector
+character_vector # view it!
+```
+
+
+## Functions
+
+Objects are nouns. Functions are verbs, acting on those nouns. That is programming in R in a nutshell. You have a data set (object). You do things to that data set (e.g., analyze with functions).
+
+All functions in R have parentheses: `function()`. When we created a vector we used the function `c()`.
+
+If we have a vector of data, like `data_new_vector`, we can calculate the sum with `sum()`:
+
+```{r function1}
+sum(data_new_vector)
+```
+
+Or find the maximum value with `max()`:
+
+```{r function2}
+max(data_new_vector)
+```
+
+Or find the minimum value with `min()`:
+
+```{r function3}
+min(data_new_vector)
+```
+
+Or calculate the average or mean with `mean()`:
+
+```{r function4}
+mean(data_new_vector)
+```
+
+
+## Checkpoint 
+
+Recall that you create a vector with `c()` and assign it with `=`. For example, the chunk below creates a vector called "v" with values $1,2,3$:
+
+```{r}
+v = c(1,2,3)
+```
+
+Create a vector called "x" with the values $5, 9, 4, 8, 40, 22$:
+
+```{r checkpoint objects_functions_1}
+x <- c(5,9,4,8,40,22)
+```
+
+Multiply `x` by 2:
+
+```{r checkpoint objects_functions_2}
+x*2
+```
+
+Calculate the sum of `x` with the function `sum()`:
+
+```{r checkpoint objects_functions_3}
+sum(x)
+```
+
+Calculate the average of `x` with `mean()`:
+
+```{r checkpoint objects_functions_4}
+mean(x)
+```
+
+Calculate the median of `x` with `median()`:
+
+```{r checkpoint objects_functions_5}
+median(x)
+```
+
+Calculate the standard deviation of `x` with `sd()`:
+
+```{r checkpoint objects_functions_6}
+sd(x)
+```
+
+# Dataframes
+
+Dataframes -- like what you see in an Excel sheet -- are just vectors chained together. 
+
+Let's load the `tidyverse`:
+
+```{r load tidyverse, message=FALSE}
+library(tidyverse)
+```
+
+and then load a built-in dataset called "diamonds" with prices of over 50,000 round cut diamonds:
+
+```{r load diamonds}
+data("diamonds") # use the function data() to load a built-in dataset
+```
+
+You can view the data inside the notebook like so:
+
+```{r view diamonds}
+diamonds
+```
+
+or you can click on in the "Environment" window pane in the top-right corner of RStudio.
+
+Notice the data contains a variety of data **types**, such as:
+
+* `price`, `carat`, `depth`, `table`: continuous, numerical variables (scale: ratio)
+* `color`: categorical variable (scale: nominal, i.e. a classification with no ranking)
+* `cut`: categorical variable (scale: ordinal, i.e. you can rank them)
+
+## Summarizing data
+
+Suppose you wanted to calculate the average price of a diamond. You would
+
+1. take the data, THEN
+2. summarize it by calculating mean miles per gallon
+
+In R those two steps are:
+
+```{r dplyr1}
+diamonds %>% # take the data, THEN
+  summarise(mean(price)) # summarize it by calculating average price
+```
+
+But not all diamonds are created equal! (According to De Beers.)
+
+Let's group diamonds by their `cut` `class` and then calculate the mean price:
+
+```{r dplyr2, message=FALSE}
+diamonds %>% # take the data, THEN
+  group_by(cut) %>%  # group the diamonds by cut, THEN
+  summarise(mean(price)) # summarize the data by calculating average price by cut
+```
+
+### Checkpoint
+
+Group the diamonds by clarity (`clarity`) and then calculate average price:
+
+```{r checkpoint dplyr1, message = FALSE}
+diamonds %>% 
+  group_by(clarity) %>% 
+  summarise(mean(price))
+```
+
+Now group diamonds by `cut` and calculate average (`mean()`), median (`median()`) and standard deviation (`sd()`) price. Hint: you only need one call to `summarise()`!
+
+```{r checkpoint dplyr2, message=FALSE}
+diamonds %>% 
+  group_by(cut) %>% 
+  summarise(mean(price), median(price), sd(price))
+```
+
+## Visualizing data
+
+One of the most important plots is the **histogram**. This tells you how observations are **distributed**. Understanding distributions is the bedrock of statistical modeling.
+
+Let's plot the **distribution** of prices:
+
+```{r ggplot1}
+ggplot(data = diamonds, aes(x = price)) + 
+  geom_histogram()
+```
+
+The distribution is heavily skewed. Clearly the **average price** is not meaningful! Why? Because if you were to randomly draw from this distribution, you would not get a diamond close to the average.
+
+To see this let's re-plot the distribution but now with a vertical line at the average price:
+
+```{r ggplot1 continued}
+ggplot(data = diamonds, aes(x = price)) + 
+  geom_histogram() + 
+  geom_vline(xintercept = 3932.8, color = "red")
+```
+Another key plot type is the **scatter plot**. Use this to study **relationships**.
+
+Let's make a scatter plot of `cty` by `hwy`:
+
+Is there a relationship between a diamond's carats (`carat`) and its price?
+
+We might think about a model in which carats determine prices (and not the other way round). That is, prices are a **function** of carats:
+
+$$
+\text{price} = f(\text{carats})
+$$
+This model implies `carat` should be on the x-axis and `price` on the y-axis:
+
+```{r ggplot2}
+ggplot(data = diamonds, aes(x = carat, y = price)) + 
+  geom_point()
+```
+Looks so!
+
+### Checkpoint
+
+Plot the distribution of `table` (another diamond attribute)L
+
+```{r checkpoint ggplot 1}
+ggplot(data = diamonds, aes(x = table)) + 
+  geom_histogram()
+```
+
+
+Replicate the code above but now plot the distribution of `depth` with `geom_density()` so you have kernel density estimate (basically a smooth histogram):
+
+```{r checkpoint ggplot 2}
+ggplot(data = diamonds, aes(x = depth)) + 
+  geom_density()
+```
+Based on this plot do you think the average depth of a diamond is meaningful?
+
+## Plots by category
+
+Many times we care about outcomes conditional on some category. 
+
+Just like `dplyr` makes it easy to `ggplot` makes it very easy to plot by a grouping variables. 
+
+There are two approaches. 
+
+### Fill and color
+
+First, create a single panel, and `fill` (histograms, boxplots, kernel densities) or `color` (scatter plots) by the group:
+
+```{r ggplot fill}
+ggplot(data = diamonds, aes(x = price, fill = cut)) + 
+  geom_histogram()
+```
+
+and for a scatterplot:
+
+```{r ggplot color}
+ggplot(data = diamonds, aes(x = carat, y = price, color = cut)) + 
+  geom_point()
+```
+
+### Facetting
+
+But these types of plots are usually hard to read 
+
+Instead you can put each group in its own panel with `facet_wrap()`:
+
+```{r facet histogram}
+ggplot(data = diamonds, aes(x = price)) + 
+  geom_histogram() + 
+  facet_wrap(~cut)
+```
+
+
+```{r facet scatterplot}
+ggplot(data = diamonds, aes(x = carat, y = price)) + 
+  geom_point() + 
+  facet_wrap(~cut) # note the "~" before the grouping variable
+```
+
+or you can even make a **grid** of plots by two categories using `facet_grid()`:
+
+```{r facet_grid}
+ggplot(data = diamonds, aes(x = price)) + 
+  geom_histogram() + 
+  facet_grid(color~cut)
+```
+

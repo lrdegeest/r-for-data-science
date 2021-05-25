@@ -1,0 +1,455 @@
+---
+title: "Tibbles and Tidying (Completed Notebook)"
+subtitle: "R for Data Science"
+author: "LDG"
+output: 
+  html_notebook:
+    number_sections: true
+    theme: readable
+    highlight: pygments
+    toc: true
+    toc_float: 
+      collapsed: yes      
+---
+
+# Set-up {-}
+ 
+```{r load packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+## Acknowledgements {-}
+
+This notebook is based on Chapters 10-12 of of [*R for Data Science*](https://r4ds.had.co.nz/index.html).
+
+# Tibbles
+
+A tibble is just a data frame. 
+
+Consider the famous `iris` data:
+
+```{r load iris}
+data("iris")
+head(iris, n = 5) # view the first five rows
+```
+
+It's a `data.frame`:
+
+```{r class iris}
+class(iris)
+```
+
+which is really just a bunch of vectors chained together. 
+
+You can do most `tidyverse` things with data.frames. Plotting:
+
+```{r plot iris}
+ggplot(data = iris, aes(x = Sepal.Length, y = Sepal.Width, color = Species)) + 
+  geom_point()
+```
+
+and summarization:
+
+```{r summarize iris}
+iris %>% 
+  group_by(Species) %>% 
+  count()
+```
+
+though notice how we got a tibble in return:
+
+```{r summarize iris class}
+iris %>% 
+  group_by(Species) %>% 
+  count() %>% 
+  class()
+```
+
+The fact of the matter is that if you do anything with `tidyverse` you will be using tibbles. Like it or lump it.
+
+## tibble vs data.frame
+
+Why re-invent the wheel? The book lists three main reasons. A tibble:
+
+1. never changes the type of input;
+2. never changes the names of variables, and;
+3. never creates row names
+
+We leave it to the book and others to expound the virtues of the tibble. Here we will just treat it like a souped-up data.frame.
+
+Most of the data we will use will be tibbles. If you want convert a data.frame to a tibble, just use `as_tibble()`:
+
+```{r iris tibble}
+iris_tbl <- as_tibble(iris)
+slice_head(iris_tbl,n = 5) # view the first ten rows
+```
+
+It is nice to see the object type of each column (`dbl` for double or numeric, `fctr` for factor, and so on). Though RNotebooks do this for data.frames, too. 
+
+### tibble vs data.frame: indexing
+
+In terms of coding there is one important difference between tibbles and data.frames: indexing columns with `[]`.
+
+Both data.frames and tibbles can be indexed with `$`:
+
+```{r indexing with $}
+print(mean(iris$Sepal.Length))
+print(mean(iris_tbl$Sepal.Length))
+```
+
+But while data.frames are indexed wit  `[row, column]`:
+
+```{r df indexing with []}
+# df[,1] indexes the first column of data.frame df and all rows
+mean(iris[,1])
+```
+
+the same code will not work with tibbles:
+
+```{r tbl indexing with []}
+mean(iris_tbl[,1])
+```
+
+Why? Because with data.frames `[]` returns a vector:
+
+```{r class df []}
+class(iris[,1])
+```
+
+but with tibbles `[]` returns another tibble:
+
+```{r class tibble []}
+class(iris_tbl[,1])
+```
+
+To return a vector you have to index with `[[columns]]` (no row argument):
+
+```{r index tibble with [[]]}
+mean(iris_tbl[[1]])
+```
+
+In general the logic of subsets returning tibbles is nice. This makes them more suitable for use in `dplyr` and other `tidyverse` packages. (That's the point of the `tidyverse`! Like how buying one Apple product increases the probability you will buy another.) 
+
+Long story short, if you live in the `tidyverse`, get used to tibbles. 
+
+### Checkpoint
+
+It helps to know `[]` (though largely because it's the main subsetting practice for **standalone vectors**.)
+
+So, use `[]` to subset the 20th to 47th rows of `iris_tbl`, then filter out sepals wider than 3.3,  then calculate the median petal length:
+
+```{r checkpoint subset, message=FALSE}
+iris_tbl[20:47,] %>% 
+  filter(Sepal.Width < 3.3) %>% 
+  summarise(median(Petal.Length))
+```
+
+## Slice
+
+Even better than `[]` for subsetting tibbles are the `slice()` operators. 
+
+`slice(a:b)` gives you rows from integer `a` to `b`. It works the same as `[]`. But it fits more with the "tidyerse" way of doing things.
+
+`slice()` is part of a family of subsetting operators:
+
+* `slice_head(n)` gives you the first $n$ rows
+* `slice_tail(n)` the last $n$ rows
+* `slice_max(column,n)` gives you the max $n$ rows based on `column`
+* the reverse for `slice_min(column, n)`
+* a personal favorite is `slice_sample(n)`, which draws a random sample of $n$ rows. Very useful when learning stats!
+
+### Checkpoint
+
+Use `slice()` to subset the 20th to 47th rows of `iris_tbl`, then filter out sepals wider than 3.3,  then calculate the median petal length. You should get exactly the same answer as before:
+
+```{r checkpoint subset with slice, message=FALSE}
+iris_tbl %>% 
+  slice(20:47) %>% 
+  filter(Sepal.Width < 3.3) %>% 
+  summarise(median(Petal.Length))
+```
+
+### Checkpoint
+
+Draw a random sample of 100 rows, then subset the first 20 rows of that sample, then calculate average petal width by species, then return only the max petal width. Each step uses a different slice operator!
+
+```{r checkpoint slicing galore, message = FALSE}
+set.seed(123) # seed the random number generator so we all get the same random sample
+iris_tbl %>% 
+  slice_sample(n = 100) %>% 
+  slice(1:20) %>% 
+  group_by(Species) %>% 
+  summarise(mean_ptl_width = mean(Petal.Width)) %>% 
+  slice_max(mean_ptl_width, n = 1)
+```
+
+# Importing data
+
+Use `read_csv()` to load a .csv file. The main argument is the path. It can be local (e.g., "~/Desktop/my_data.csv"). Or it can be a file hosted somehwere. 
+
+For instance, here is the 11/23 update on Covid-19 around the world from [John Hopkins' GitHub](https://github.com/CSSEGISandData/COVID-19):
+
+```{r read_csv}
+covid <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/11-23-2020.csv")
+```
+
+`read_csv()` is loud: it prints a lot of output when run. That can be useful. It can also be annoying, especially in a notebook. 
+
+Fortunately you can use the `knitr` switches to suppress output. Here we can use `message = FALSE`:
+
+```{r read_csv quiet, message=FALSE}
+us_covid_deaths <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv")
+```
+
+`read_csv` always returns a tibble: Surprise!
+
+`tidyverse` also has methods to read tab-delimited files and more. See [here](https://readr.tidyverse.org/reference/read_delim.html).
+
+## Writing a file
+
+Check out the Covid-19 deaths:
+
+```{r head covid}
+slice_head(covid, n=10)
+```
+
+Let's calculate the total deaths for Belgium and South Korea:
+
+```{r summarize covid, message=FALSE}
+covid %>% 
+  filter(Country_Region %in% c("Belgium", "Korea, South")) %>% 
+  group_by(Country_Region) %>% 
+  summarise(sum(Deaths))
+```
+
+Suppose your boss wants an Excel file of your work. You can write the output to a csv file with `write_csv()`:
+
+```{r summarize covid then write_csv, message=FALSE}
+# make the summary table
+summary_table = covid %>% 
+  filter(Country_Region %in% c("Belgium", "Korea, South")) %>% 
+  group_by(Country_Region) %>% 
+  summarise(sum(Deaths)) 
+# then write it to a file
+write_csv(summary_table, " ") # fill this in with your path
+```
+
+## Side note: factors
+
+Factors are R's way of handling categorical variables. 
+
+Basically a factor is a character vector where each entry belongs to a **category** -- or as R calls them, a **level**. 
+
+What are categorical variables? The book puts it nicely: "variables that have a fixed and known set of possible values".
+
+`Species` is a factor:
+
+```{r}
+is.factor(iris_tbl$Species)
+```
+
+and you can view the **levels** or **unique categories** with `levels()`:
+
+```{r}
+levels(iris_tbl$Species)
+```
+When do you have to care about factors? Usually for mundane things like re-ordering the order of categories (e.g., in a plot, a regression, etc.). Dealing with factors can be annoying, but it's just a matter of using a few code snippets here and there, so dealing with factors is firmly in the "don't bother remembering, just go to Stack Overflow" pile.
+
+For more on factors see Chapter 15. The `tidyverse` also ships a package just for factors called `forcats`. 
+
+## Side note: other variable types
+
+We're glossing over other variable types like dates, times and so on. For more [see here](https://r4ds.had.co.nz/data-import.html#parsing-a-vector) and Chapters 14 and 16. Again this is mostly Stack Overflow stuff. 
+
+# Tidy data
+
+A lot of data science is really data wrangling. That means getting your data into shape so you can do science. That also means spending hours on Stack Overflow. Why? Because each data set is unique, and how you want it shaped depends on your objectives. 
+
+The idea of "tidy" data is to produce data sets that satisfy three desiderata. Quoting from the book:
+
+1. Each variable must have its own column
+2. Each observation must have its own row
+3. Each value must have its own cell
+
+Visually:
+
+![](https://d33wubrfki0l68.cloudfront.net/6f1ddb544fc5c69a2478e444ab8112fb0eea23f8/91adc/images/tidy-1.png)
+
+Think of this way: can you run a regression on the data as-is? If not, it's not tidy.
+
+This data is tidy:
+
+```{r table1}
+table1
+```
+
+Why? Because each column is a unique variable and each row is a unique observation. The `covid` data set is tidy for the same reasons.
+
+## Easy (easier?) data wrangling 
+
+Data wrangling can take many forms. Missing data, weird strings, and so on. Lots of these problems involve taking action on a single column. 
+
+For instance, `separate` will separate one column into columns of an otherwise tidy data set.
+
+Consider `table3`:
+
+```{r table3}
+table3
+```
+
+Everything looks good, but we want `rate` (cases divided by population) to be two columns: "cases" and population. Easy enough:
+
+```{r separate demo}
+table3 %>% 
+  separate(rate, into = c("cases", "population"))
+```
+
+Now you can easily create a `rate` column. We just need to pass `convert = TRUE` to `separate()` so the new columns are numeric (and thus amenable to math):
+
+```{r separate then mutate}
+table3 %>% 
+  separate(rate, into = c("cases", "population"), convert = TRUE) %>% 
+  mutate(rate = cases / population)
+```
+
+
+## Hard (harder?) data wrangling
+
+What about this data? 
+
+```{r table2}
+table2
+```
+
+Not tidy. The same observation (e.g., "Afghanistan in 1999") is spread across multiple rows.
+
+Tidying this data is harder. In general the hard stuff is when you have to think about changing the entire *shape* of the data. (By hard stuff I mean harder to find a quick StackOverlflow solution.)
+
+Two key functions here: `pivot_wider` and `pivot_longer`. We'll just focus on these two. 
+
+## `pivot_wider`
+
+`table2` is a case where we want to **add columns** and **reduce rows**. This is a job for `pivot_wider`. You want the `type` column to be two separate columns: one for "cases", the other for "population". 
+
+```{r pivot wider table2}
+table2 %>% 
+  pivot_wider(names_from = type, values_from = count)
+```
+
+Now it's tidy: each row is a unique observation ("Afghanistan 1999", "Brazil 2000", etc.)
+
+The first argument `names_from` takes the column you want to separate into multiple columns. 
+
+The second argument `values_from` maps the values into their new columns. 
+
+## `pivot_longer`
+
+The opposite of `pivot_wider`. Use this when you want to **reduce columns** and **add rows**. 
+
+For instance, this data is untidy:
+
+```{r table4a}
+table4a
+```
+
+We don't want a "1999" and "2000" column, we want a "year" column.
+
+With `pivot_longer()`:
+
+```{r table4a pivot_longer}
+table4a %>% 
+  pivot_longer(c(`1999`, `2000`), names_to = "year", values_to = "cases")
+```
+
+## Checkpoint
+
+Consider this data:
+
+```{r players checkpoint tible}
+players <- tribble(
+  ~player,             ~stat,       ~value,
+  "Kevin De Bruyne",   "goals",      20,
+  "Kevin De Bruyne",   "assists",    17,
+  "Kevin De Bruyne",   "red_cards",  2,
+  "Sergio Ramos",      "goals",      5,
+  "Sergio Ramos",      "assists",    8,
+  "Sergio Ramos",      "red_cards",  30,
+)
+
+players
+```
+
+"Widen" it to create a new tibble called "players_wide":
+
+```{r players checkpoint solution}
+players_wide = players %>% 
+  pivot_wider(names_from = stat, values_from = value) 
+
+players_wide
+```
+
+Now pivot `players_wide` back to "long" form and use `geom_col()` to plot a bar chart of each player's statistics:
+
+```{r players pivot longer and plot}
+players_wide %>% 
+  pivot_longer(c(goals, assists, red_cards), names_to = "stat", values_to = "values") %>% 
+  ggplot(data = ., aes(x = stat, y = values, fill = player)) + 
+  geom_col(position = "dodge")
+```
+
+**Key point.** To make a plot like this you need the data in "long" format (i.e. with `pivot_longer()`.)
+
+## Checkpoint
+
+Pick some countries from the `covid` data, calculate total deaths and total confirmed cases by country, `pivot_longer` the summary table, then make a bar chart (one facet for total deaths by country, the other for total confirmed cases by country).
+
+```{r checkpoint covid plot, message=FALSE}
+# part 1: the summary table
+covid %>% 
+  filter(Country_Region %in% c("Belgium", "Korea, South", "US", "Canada", "Italy")) %>% 
+  group_by(Country_Region) %>% 
+  summarise(total_deaths = sum(Deaths), total_confirmed = sum(Confirmed)) %>% 
+  # part 2: now pivot_long the summary table
+  pivot_longer(c(total_deaths, total_confirmed), names_to = "measure", values_to="value") %>% 
+  # part 3: now plot it! 
+  ggplot(., aes(x = Country_Region, y = value)) + 
+  geom_col() + 
+  facet_wrap(~measure)
+```
+
+## Checkpoint
+
+Consider this data:
+
+```{r checkpoint people tible}
+people <- tribble(
+  ~name,             ~names,  ~values,
+  "Phillip Woods",   "age",       45,
+  "Phillip Woods",   "height",   186,
+  "Phillip Woods",   "age",       50,
+  "Jessica Cordero", "age",       37,
+  "Jessica Cordero", "height",   156
+)
+
+people
+```
+
+It needs to be tidied. What happens if you try to pivot wider? 
+
+```{r try to pivot people wider}
+people %>% 
+  pivot_wider(names_from = names, values_from = values)
+```
+
+Suppose you are told that there was a mistake in the data entry: "Phillip Woods" is aged 50, not 45. Use this information to write a code that filters out that row. Then tidy the data with `pivot_wider()`:
+
+```{r people filter than pivot }
+people %>% 
+  filter(!(name == "Phillip Woods" & names == "age" & values == 45)) %>% 
+  pivot_wider(names_from = names, values_from = values)
+```
+
+
+
+
+

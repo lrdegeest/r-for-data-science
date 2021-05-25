@@ -1,0 +1,496 @@
+---
+title: "Linear Models (Completed Notebook)"
+subtitle: "R for Data Science"
+author: "LDG"
+output: 
+  html_notebook:
+    number_sections: true
+    theme: readable
+    highlight: pygments
+    toc: true
+    toc_float: 
+      collapsed: yes      
+---
+
+# Set-up {-}
+ 
+```{r load packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+## Caveats {-}
+
+This is **very** shallow discussion of linear models. Focus is on **inference** (i.e. hypothesis tests on regression coefficients). We leave the many other topics in linear modeling (including the assumptions of linear models) to the reader. 
+
+# Linear relationships
+
+Life is about relationships. And relationships are about **co-variation**: two things moving or varying together.  
+
+Let's continue working with the data `nhanes` which records, among other things, data on human heights in a sample of over 10,000 people. This data comes from a [CDC survey](https://wwwn.cdc.gov/nchs/nhanes/continu=ousnhanes/default.aspx). 
+
+```{r load nhanes, message=FALSE}
+nhanes = read_csv("https://query.data.world/s/k5y6uqf7xhsjqwcpldplc6kvytjtoy")
+```
+
+Consider the simple relationship between height and weight. Do you get heavier when you get taller? 
+
+Plot the relationship between height and weight and include a regression line:
+
+```{r plot weight height}
+nhanes %>% 
+  ggplot(data = ., aes(x = weight, y = height)) + 
+  geom_point() + 
+  geom_smooth(method = 'lm')
+```
+
+That blue line is the linear model:
+
+$$
+\begin{aligned}
+\text{weight} &= f(\text{height}) + \epsilon \\
+                &= \beta_0 + \beta_1\text{height} + \epsilon
+\end{aligned}
+$$
+
+and we know we can estimate the **parameters** of our model with `lm`:
+
+```{r lm weight height}
+lm(formula = weight ~ height, data = nhanes)
+```
+
+But how exactly are those values chosen?
+
+## OLS is a minimization problem
+
+`lm()` is an example of **Ordinary Least Squares**. It fits a line through a spray of points by solving a **minimization** problem. 
+
+What to minimize? Well, how about minimizing the **error**, or the difference between the **observed** value ($y$) and the **predicted** value ($\hat{y}$)?
+
+The idea is to find the "least costly" line (cost in terms of error). Set up the cost function $C$
+
+$$
+\begin{aligned}
+  C(\cdot)  &= \sum_{i=1}^n (y_i - \hat{y_i})^2 \\
+                &=  \sum_{i=1}^n (y_i - (\hat{\beta_0} + \hat{\beta_1}\text{height}))^2
+\end{aligned}
+$$
+
+This is a straightforward calculus problem: find the values of $\beta_0$ and $\beta_1$ that **minimize** the cost function. The problem can be written as
+
+$$
+(\hat{\beta_0}, \hat{\beta_1}) = \underset{\beta_0, \beta_1}{\operatorname{argmin}} C(\cdot)
+$$
+
+and the solutions $\hat{\beta_0}$ and $\hat{beta_1}$ (the estimates of $\beta_0$ and $\beta_1$) are the values of the parameters that satisfy the **first-order condition**, i.e. the points where the gradient (vector of first derivatives) is equal to zero:
+
+$$
+\nabla C = 
+\begin{bmatrix}
+  \frac{\partial C}{\partial \beta_0}\\
+  \frac{\partial C}{\partial \beta_1} 
+\end{bmatrix}
+= 0
+$$
+
+One way to solve this problem is through **maximum likelihood** (MLE), a general method of optimizing a function to data (or "finding the parameters that maximize the likelihood of the data", hence "maximum likelihood"). Let's see it in action using R's built-in optimizer `optim`:
+
+```{r ols mle}
+# set up a likelihood function
+ols_log_likelihood = function(theta){
+  x = as.matrix(nhanes$height)
+  X = cbind(1,x)
+  y = as.matrix(nhanes$weight)
+  k = ncol(X)
+  beta = theta[1:k]
+  sigma = theta[k+1]
+  expected_y = X %*% beta 
+  LL = sum(dnorm(y, mean = expected_y, sd = sigma, log = TRUE))
+  return(-LL)
+}
+
+# optimize it with starting values
+ml_estimate = optim(ols_log_likelihood, par=c(1, 1, 1))
+# coefficient on height
+ml_estimate$par[1]
+```
+
+MLE is a general algorithm to find the parameters that best fit the data. It can be used for many different function forms. OLS is a special case of MLE when we assume the functional form is linear (and errors are normally distributed). When we solve $\nabla C =  = 0$ we derive the familiar formula for the slope coefficient:
+
+$$
+\hat{\beta_1} = \frac{\sum_{i=1}^n (x_i - \bar{y})(x_i - \bar{y})}{\sum_{i=1}^n (x_i - \bar{x})^2} = \frac{\text{Cov}(x,y)}{\text{Var}(x)}
+$$
+and for the intercept:
+
+$$
+\hat{\beta_0} = \bar{y} - \hat{\beta_1}\bar{x}
+$$
+The OLS solutions can also be expressed in matrix from:
+
+$$
+\beta = (X'X)^{-1} X'y
+$$
+and then solved with linear algebra:
+
+```{r ols lin alg}
+# turn the height column into a matrix
+x = as.matrix(cbind(1,nhanes$height))
+# turn the weight column into a matrix
+y = as.matrix(nhanes$weight)
+# coefficient beta_1
+## t(x) = transpose of x
+## solve() = inverse
+## %*% = matrix multiplication
+solve(t(x) %*% x) %*% t(x) %*% y
+```
+
+This is the basic idea of what `lm` is doing under the hood.
+
+## Big picture
+
+Don't worry about the finer details. The bigger picture is that we get (basically - the optimizer is sensitive to initial values) the same results with `optim` as we do `lm`. 
+
+The even bigger picture is to think about model-fitting as an optimization problem -- because every estimator is solving some optimization problem. If you can set up a "cost" function, you can optimize it. 
+
+# Interpretation
+
+In the generalized linear model:
+
+$$
+\begin{aligned}
+  y &= f(x) \\
+    &= \beta_0 + \beta_1x + \epsilon
+\end{aligned}
+$$
+
+where $\beta_0$  ("beta naught") is the **intercept**, $\beta_1$ ("beta one") is the **slope**, and $\epsilon$ ("epsilon") is the **error**, the slope captures how changes in $x$ lead to changes in $y$: 
+
+> A one unit increase in $x$ is associated with a $\beta_1$ change in y, **on average**.
+
+So in our model of weight (kilograms) and height (inches:
+
+```{r lm weight height again}
+lm(formula = weight ~ height, data = nhanes)
+```
+
+A one inch increase in height is associated with an **average** increase in weight of 0.76 kilograms.
+
+# Multiple regression 
+
+But do we really think that weight *only* depends on height? 
+
+For instance, what about sex? Does weight vary on average between men and women?
+
+```{r avg weight by sex, message=FALSE}
+nhanes %>% 
+  group_by(sex) %>% #
+  summarise(mean_weight = mean(weight)) 
+```
+
+So if we estimate `lm(weight ~ height, data = nhanes)`, are we *really* capturing the effect of height on weight? 
+
+Or are we also picking up the "signals" or effects of other variables (like sex) on weight?
+
+When our model fails to "pick up the signal" of **omitted variables**, the model suffers from **omitted variable bias**. 
+
+Fortunately it is straightforward to extend our model with one variable. 
+
+**Multiple regression** is just linear regression with multiple variables. We simply **add** variables to the model:
+
+$$
+\begin{aligned}
+\text{weight} &= f(\text{height}, \text{sex}, \text{age}) + \epsilon \\
+                &= \beta_0 + \beta_1\text{height} + \beta_2\text{sex} + \beta_3\text{age} + \epsilon
+\end{aligned}
+$$
+
+To estimate this multiple regression, we just need add the terms (literally) inside `lm()`:
+
+```{r multiple regression}
+lm(formula = weight ~ height + sex + age, data = nhanes)
+```
+
+Interpretation:
+
+> A one inch increase in height is associated with an average 0.75 kg increase in weight, controling for sex and height.
+
+## Checkpiont: "Control for"
+
+What exactly does it mean to "control for" a variable? For example, "control for sex" (or "adjust for sex")?
+
+It means to account for the variation in weight due to sex. 
+
+Why control? So we can **isolate** the "signal" (the variation in weight due to height).
+
+We can show this in three steps:
+
+1. Create a variable (with `mutate()`) that calculates the average height of a person by sex and add it to a new data frame called `nhanes2`:
+
+```{r mutate height_by_sex}
+nhanes2 = nhanes %>% 
+  group_by(sex) %>% 
+  mutate(height_by_sex = mean(height)) 
+```
+
+2. Create a variable `height_no_sex` that subtracts `height` from `height_by_sex` to remove the variation in height due to sex:
+
+```{r mutate height_no_sex}
+nhanes2 = nhanes2 %>% 
+  mutate(height_no_sex = height - height_by_sex)
+```
+
+Now we have a variable `height_no_sex` that is "sex neutral". 
+
+3. Finally, run a regression on weight and our new variable:
+
+```{r regress weight as a function of height_no_sex}
+lm(formula = weight ~ height_no_sex, data = nhanes2)
+```
+
+Notice how the coefficient on `height_no_sex` (0.6651) is the same as the coefficient on `height` (0.6651) in the model with both `height` and `sex`!
+
+```{r weight as function of height and sex}
+lm(formula = weight ~ height + sex, data = nhanes2)
+```
+
+# Inference
+
+We know that regression coefficients are **random variables** that vary across samples:
+
+```{r random variables}
+nhanes %>% 
+  slice_sample(n = 100) %>% 
+  lm(formula = weight ~ height + sex + age, data = .)
+```
+
+so we run a regression to **infer** about the population (the data we don't have) from our sample (the data we do have).
+
+Our hypothesis test on each regression coefficient essentially tests whether there **is** or **is not** a relationship between the variable and the outcome **in the population**:
+
+$$
+\begin{aligned}
+H_0 &: \beta_1 = 0 \\
+H_A &: \beta_1 \neq 0
+\end{aligned}
+$$
+
+The null states the expected value of the coefficient is zero. It is like saying "on average we would find no relationship between height and weight". 
+
+You can think of this in terms of the legal presumption of innocence:
+
+$$
+\begin{aligned}
+H_0 &: \text{innocent} \\
+H_A &: \text{guilty}
+\end{aligned}
+$$
+
+The idea is that the prosecutor (the researcher) must gather evidence (data) to **reject** the defendant's innocence (i.e. reject $H_0$). If the data are lacking then you **fail to reject** the null hypothesis. 
+
+## P-values
+
+How do we know if our evidence (data) rejects the null hypothesis? 
+
+Our estimate for $\beta_1$ (the effect of height) is about 0.75. But consider this thought experiment.
+
+*If* the null hypothesis were correct, and $E[\beta_1] = 0$ (on average there is **no** effect of height)...
+
+...then what is the **probability** we would observe $\hat{\beta_1} = 0.75$? 
+
+In other words, what is the probability we observe an effect that **is not** zero if the "truth" (expected value of the sampling distribution) is zero? 
+
+## Reject or fail to reject
+
+We cannot prove things with data. 
+
+Why? 
+
+Because we observe samples of the population, not the population itself. 
+
+We use those samples to **infer** about the population. 
+
+We then use hypotheses to do inference. 
+
+And since we cannot prove anything, we can only **reject** or **fail to reject** hypotheses.
+
+If the probability is very close to zero, then it is **unlikely** the null hypothesis is true, and we can reject it. 
+
+But if the probability is very close to one, the it is **likely** the null hypothesis is true, and we **fail to reject** it. 
+
+### P-values with `summary()`
+
+This probability is called a **p-value**. 
+
+P-values are calculated for you with the function `summary()`.
+
+`summary()` takes the output of `lm()` and spits out the estimated coefficients -- as well the hypothesis tests and other regression diagnostics. 
+
+Let's see this with a random sample:
+
+```{r summary}
+set.seed(123)
+nhanes %>% 
+  slice_sample(n = 100) %>% 
+  lm(formula = weight ~ height + sex + age, data = .) %>% 
+  summary()
+```
+
+The p-values are shown in the column `Pr(>|t|)`.
+
+## Interpretating p-values
+
+If the probability is very close to zero, then it is **unlikely** the null hypothesis is true, and we can reject it. 
+
+How close to zero is close enough? 
+
+There is no hard-and-fast rule. So science has **coordinated** on a set of **thresholds** so that the **convention** is to compare your p-values to these thresholds: 
+
+* 10% or 0.10: "weak evidence to reject $H_0$"
+* 5% or 0.05: "evidence to reject $H_0$"
+* 1% or 0.01: "strong evidence to reject $H_0$"
+
+If the p-value is below a threshold, say 5%, we say that we reject the null hypothesis at the 5% level. 
+
+And if we reject the null, we say the effect is **statistically significant**. 
+
+Let's apply this to our coefficients:
+
+* The p-value to `height` is 0.00. We reject at the 1% level. Statistically significant.
+* The p-value to `age` is 0.00. We reject at the 1% level. Statistically significant.
+* The p-value to `sex==Male` is 0.00. We reject at the 1% level. Statistically significant.
+
+## Illustrating p-values
+
+The p-value is the probability of the test statistic under a true null hypothesis. Let's unpack this.
+
+The test statistic or t-value is the coefficient divided by it's standard error. The test statistic for our coefficient on height is:
+
+```{r test stat}
+0.58763 / 0.20994
+```
+
+The p-value is the two-tailed probability of this value for our degrees of freedom $n - k$. We have $n=100$ (our random sample) and $k=4$ (three coefficients and an intercept), so:
+
+```{r pval}
+2*pt(-abs(2.799038), df = 100 - 4)
+```
+
+This is number is literally the area underneath the curve of the t-distribution, which is centered at zero (the null hypothesis):
+
+```{r illustrate t-distribution height}
+# set the test stat
+test_stat = 2.799038
+# create a bunch of t-stats
+t_values = seq(from=-4, to=4, by = 0.01)
+# calculate the densities for each element
+t_densities = dt(t_values, df = length(t_values)  - 1) 
+# make a dataframe out of the t_value and t_density
+t_dataframe = tibble("t_value" = t_values, "t_density" = t_densities)
+# plot the t-distribution
+ggplot(t_dataframe, aes(x=t_value, y=t_density)) + 
+  geom_line() + 
+  geom_area(aes(t_values) , fill = "gray") +
+  geom_vline(xintercept = test_stat, color="red") + 
+  geom_vline(xintercept = -test_stat, color="red") +
+  geom_area(data = filter(t_dataframe, t_value > test_stat), fill="red") + 
+  geom_area(data = filter(t_dataframe, t_value < -test_stat), fill="red") +
+  labs(x = "t stat", y = "P(t stat)")
+```
+
+and so the p-value is just the integral from $-\infty$ to -2.799038 for the lower tail, and times two for the upper tail:
+
+```{r}
+2*integrate(f = function(x) dt(x, df = 96), lower = -Inf, upper = -2.799038)$value
+```
+
+The probability is small because the area under the curve is small. By contrast, plot the p-value for the test stat on `age`:
+
+```{r illustrate t-distribution age}
+# set the test stat
+test_stat = 0.935
+# create a bunch of t-stats
+t_values = seq(from=-4, to=4, by = 0.01)
+# calculate the densities for each element
+t_densities = dt(t_values, df = length(t_values)  - 1) 
+# make a dataframe out of the t_value and t_density
+t_dataframe = tibble("t_value" = t_values, "t_density" = t_densities)
+# plot the t-distribution
+ggplot(t_dataframe, aes(x=t_value, y=t_density)) + 
+  geom_line() + 
+  geom_area(aes(t_values) , fill = "gray") +
+  geom_vline(xintercept = test_stat, color="red") + 
+  geom_vline(xintercept = -test_stat, color="red") +
+  geom_area(data = filter(t_dataframe, t_value > test_stat), fill="red") + 
+  geom_area(data = filter(t_dataframe, t_value < -test_stat), fill="red") +
+  labs(x = "t stat", y = "P(t stat)")
+```
+
+The thing to keep in mind about p-values is they are massively influenced by the amount of data. This is because the test statistic is the coefficient divided by the standard error, and the standard error is divided by the square root of the number of observations. So if we increase the sample size:
+
+```{r bigger sample}
+nhanes %>% 
+  slice_sample(n = 1000) %>% 
+  lm(formula = weight ~ height + sex + age, data = .) %>% 
+  summary()
+```
+
+more often than not we reject null hypotheses. 
+
+Keep this in mind when if you run a regression on thousands or millions of data points. Significant coefficients aren't that meaningful, and you have to think harder about **why** variables might be related. By contrast, it's more meaningful if you **don't** find a significant relationship!
+
+# Tidy models 
+
+The output of `summary()` is clearly not tidy data. The package `broom` makes it easier to work with model objects. 
+
+Say we have this model:
+
+```{r broom model}
+model = nhanes %>% 
+  lm(formula = weight ~ height + sex + age, data = .)
+```
+
+`tidy()` turns the model into a tibble:
+
+```{r tidy broom}
+broom::tidy(model)
+```
+
+and `augment()` "augments" the model by creating a tibble and adding predicted values, residuals, and other stuff:
+
+```{r tidy augment}
+broom::augment(model)
+```
+
+# Checkpoint
+
+Draw 500 random values from `diamonds` and estimate log prices as a function of carats, table, depth and color. Assign the model to the object `diamonds_model`. Use a mutated variable "log_prices" (this make it easier to use `broom`).
+
+```{r checkpoint diamonds 1}
+set.seed(123)
+
+model_diamonds = diamonds %>% 
+  slice_sample(n = 500) %>% 
+  mutate(log_price = log(price)) %>% 
+  lm(formula = log_price ~ carat + table + depth + color, data = .)
+
+summary(model_diamonds)
+```
+
+Verify the test statistic for the coefficient on table:
+
+```{r checkpoint diamonds 2}
+0.007380 / 0.007345
+```
+
+Verify the p-value for the coefficient on table:
+
+```{r checkpoint diamonds 3}
+2*pt(-abs(1.004765), df = 490)
+```
+
+Calculate the **average squared error** of the model, i.e. the average difference between observed log prices and predicted log prices:
+
+```{r checkpoint diamonds 4}
+broom::augment(model_diamonds) %>% 
+  summarise(avg_error = mean((log_price - .fitted)^2))
+```
+

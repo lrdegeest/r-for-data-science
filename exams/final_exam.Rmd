@@ -1,0 +1,468 @@
+---
+title: "Final Exam"
+author: "SOLUTIONS"
+subtitle: "R for Data Science"
+output:
+  html_document:
+    highlight: pygments
+    number_sections: yes
+    theme: readable
+    toc: yes
+    toc_float:
+      collapsed: yes
+---
+
+```{r chunk options, echo=FALSE}
+# this chunk set up global chunk options. 
+# You DO NOT need to run it. 
+# Change NOTHING about it.
+knitr::opts_chunk$set(warning=FALSE, message = FALSE) 
+
+
+# The chunk below creates an written answer chunk for you to write answers. 
+# You DO NOT need to run it. 
+# Change NOTHING about it.
+```
+
+```{css question/answer styling, echo=FALSE}
+/* do nothing to this chunk! */
+.written_answer {
+  padding: 1em;
+  background: #FFF8DC;
+  color: gray;
+  border-left: 5px solid #fce68b;
+  border-radius: 0px;
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+blockquote {
+  font-size:16px;
+  background-color: #f0f5ff;
+}
+```
+
+
+# Directions {-}
+
+There are 37 questions. Each question is tagged with **[QUESTION]**. Each question is worth 3 points. There are a total of 111 points. 
+
+Enter your answers in the chunks provided. Do not create additional chunks. Do not code or type anywhere outside the chunks. 
+
+There are two types of chunks. One for code, the other for writing. 
+
+## Code chunks {-}
+
+Code chunks look like this:
+
+```{r, echo= TRUE, eval=FALSE}
+# your code here
+```
+
+**Delete** `# your code here` and replace it with your code.
+
+## Writing chunks {-}
+
+The writing chunks look like this:
+
+```{block, type = "written_answer"}
+your answer here
+```
+
+You can write normal Markdown inside the writing chunks. 
+
+**Delete** "your answer here" and replace it with your written answer. 
+
+# Load the following packages {-}
+
+Load the following packages:
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(broom)
+```
+
+# Warm up
+
+> **[QUESTION]** Calculate:
+
+$$
+\frac{10^2 + 4^3}{10^3 + 4^2}
+$$
+
+```{r}
+# your code here
+```
+
+> **[QUESTION]** Re-write the following code using pipes:
+
+```{r}
+mean(exp(sqrt(1:10)))
+```
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Draw 1000 random normal numbers with a mean of 3 and a standard deviation of 1. Then calculate the average of the 30th to 300th observations.
+
+```{r}
+set.seed(2020)
+# your code here
+```
+
+> **[QUESTION]** Using `diamonds`, filter **out** (i.e., remove) diamonds whose cut is "Ideal", then plot the distribution of **log** prices **by** cut. Put each distribution in its own panel.
+
+```{r}
+# your code here
+```
+
+
+# The value of (statistical) life
+
+The Environmental Protection Agency (EPA) estimates the value of human life in US dollars. This allows the government to weigh the costs and benefits of policies when human lives are at stake. 
+
+While the EPA cannot place a value on each and every life, it can value **statistical** life -- the average life. 
+
+The EPA estimate of an **unconditional** statistical life (i.e., not depending on factors like age, income and other characteristics) is $7.4 million. 
+
+## Converting values
+
+However, this estimate of $7.4 million is in 2006 dollars. We can convert this to dollars in another year with the following formula:
+
+$$
+X_b = X_a\frac{CPI_b}{CPI_a}
+$$
+where:
+
+* $X_a$ is some dollar value in year a
+* $X_b$ is the converted dollar value in year b
+* $CPI_b$ is the consumer price index (CPI) in year b
+* $CPI_a$ is the consumer price index (CPI) in year a
+
+> **[QUESTION]** Write a function called `dollars_converter` that the implements the formula above. It should take three arguments:
+
+* `value` for $X_a$
+* `cpi_a` for $CPI_a$
+* `cpi_b` for $CPI_b$
+
+```{r}
+# your code here
+```
+
+
+The CPI index in 2006 was 201.6. In 2018 it was 251.1. Use `dollars_converter` to convert the the value of a statistical life from 2006 dollars (7.4) to 2018 dollars.
+
+```{r}
+# your code here
+```
+
+## Present value
+
+Suppose a policy is proposed that will save **future** lives. How much are those lives worth right now? 
+
+The **present value** of an asset (including a human life) is the asset's future value expressed in the present. The general formula is:
+
+$$
+PV = \frac{R_t}{(1 + d)^t}
+$$
+
+where:
+
+* $R_t$ is the future value of some asset
+* $d$ is the discount rate (a number between 0 and 1) -- the rate at which people discount benefits realized only in the future
+* $t$ is time in years
+
+> **[QUESTION]** Write a function called `present_value` that calculates the present value of a statistical life as a function of time and the discount rate. 
+
+The function `present_value` should take three arguments:
+
+* `r` for $R_t$ (defaulting to the value of a statistical life in 2018 dollars)
+* `d` for $d$
+* `t` for $t$
+
+```{r}
+# your code here
+```
+
+> **[QUESTION]** Calculate the present value of a statistical life **five** years from now. Assume a discount rate of 5%. 
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Calculate the present value of a statistical life **fifty** years from now. Assume a discount rate of 5%. 
+
+```{r}
+# your code here
+```
+
+> **[QUESTION]** Calculate the present value of a statistical life five years from now, but this time assume a discount rate of 10%. 
+
+```{r}
+# your code here
+```
+
+> **[QUESTION]** Create a vector called `time` with the values one to fifty. Create an empty numerical vector called `pvs` the same length as `time`. Then write a loop that calculates the present value of a statistical for one to fifty years into the future. Assume a 5% discount rate. 
+
+```{r}
+# your code here
+```
+
+> **[QUESTION]** Create a tibble out of `time` and `pvs`. Then plot `pvs` over `time`. 
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Write a function called `present_value_simulator` that calculates the present value of a statisitical life. The function will loop over a user-specified time interval and calculate the present value of a statistical life for a given discount rate. 
+
+The function should have three arguments:
+
+* `r``: the value of a statistical life (defaulting the value of a statistical life in 2018 dollars)
+* `d`: the discount rate (a number between 0 and 1)
+* `t_start`: the starting time period (an integer)
+* `t_end`: the ending time period (an integer)
+
+The function should return a tibble where the first column is the time vector and the second column are the present values. 
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Use `present_value_simulator` to simulate the present value of a statistical life in 2018 dollars for `t_start = 0`, `t_end = 30`, and a discount rate of 10%. Pipe the output to `ggplot` and plot the present values over time.
+
+```{r}
+# your code here
+```
+
+
+# COVID-19
+
+Johns Hopkins collects and publishes data every day on COVID-19 (see [here](https://github.com/CSSEGISandData/COVID-19)).
+
+Load the data from 11/30/20:
+
+```{r load covid data, warning=FALSE, message=FALSE}
+covid19 = read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/11-30-2020.csv")
+```
+
+> **[QUESTION]** Write code that finds the **five** countries with the highest number of confirmed cases as of 11/30/20.
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Filter the data to keep only observations from the US and assign them to the object `covid_us`:
+
+```{r}
+# your code here
+```
+
+*For the rest of this section use `covid_us`*. 
+
+> **[QUESTION]** Which five states have the most cases?
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Which five states have the most deaths?
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** In the state with most cases, select the columns for state, county, confirmed cases and deaths, then find the county with the most cases:
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Create a variable that calculates deaths over confirmed cases. Call this variable "cfr" (for "case fatality ratio"). You should get same results as "Case_Fatality_Ratio". **heads up!** There are some entries with either zero cases and non-zero deaths, and vice versa (this could be a data entry issue). Make sure you account for this when creating `cfr`. Use `ifelse` and give the value `NA` to entries for which you cannot calculate a case-fatality ratio.
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** What are the five states or territories with the highest case-fatality ratios? 
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Filter out the maximum value of `cfr`, then plot the cumulative distribution of `cfr` and use `geom_vline` to indicate what percent of the data is below a 5% mortality rate. Color the vertical line red. 
+
+```{r}
+# your code here
+```
+
+
+# Boston Property
+
+In this section you will explore data on property assessments in Boston. The data come from [Analyze Boston](https://data.boston.gov/). You can read more about the data [here](https://data.boston.gov/dataset/property-assessment/resource/bac18ae6-b8fd-4cd3-a61c-c5e1a11f716c)
+
+## Data
+
+Load all the data from FY18:
+
+```{r load boston_property, message=FALSE, warning=FALSE}
+boston_property = read_csv("https://query.data.world/s/pfqt62iufpcricbewykr3q6nrnpj6n")
+```
+
+The variable `AV_TOTAL` shows property assessments in US dollars.
+
+> **[QUESTION]** The data are very large and messy so let's look at a sample. In the following chunk fill in the `filter` call to filter **out** (i.e., remove) observations with no property assessment or dwelling (i.e., where `AV_TOTAL`, `AV_LAND`, `LIVING_AREA` and `YR_BUILT` are equal to 0):
+
+```{r}
+set.seed(02132)
+boston_property_sample = boston_property %>% 
+  filter() %>% # FILL THIS IN
+  drop_na(R_TOTAL_RMS) %>% # remove "properties" with no rooms
+  slice_sample(prop = 0.8) # draw an 80% sample
+```
+
+*For the next several questions make sure you are using `boston_property_sample`.*
+
+> **[QUESTION]** Plot the distribution of property assessments (`AV_TOTAL`). 
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Next, create a variable called `log_AV_TOTAL` that calculates the log of property prices and add it to the data.
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Plot the distribution of **log** property assessments (`log_AV_TOTAL`). 
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Why bother calculating log property assessments? 
+
+```{block, type = 'written_answer'}
+your written answer her
+```
+
+> **[QUESTION]** Confirm that `log_AV_TOTAL` is normally distributed by showing that the mean and median are similar:
+
+```{r}
+# your code here
+```
+
+
+Let's focus the rest of our analysis on the zipcode with the most observations. 
+
+> **[QUESTION]** Group observations by `ZIPCODE`, count the number of observations in each ZIPCODE, then identify the ZIPCODE with the most observations. 
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Create a new data set called `boston_property_sample_ZIPCODE` but replace "ZIPCODE" with the actual zipcode (e.g., if the zipcode with the most observations was 02138, the data would be `boston_property_sample_02138`). Create this data set by filtering observations in that zipcode.
+
+```{r}
+# your code here
+```
+
+
+## Summarizing the data
+
+> **[QUESTION]** Calculate mean, median standard deviation and the count of log property assessments in `boston_property_sample_ZIPCODE`.
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Make of a scatter plot of log prices on the y-axis and the number of bedrooms (`R_BDRMS`) on the x-axis. Include a regression line.
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Interpret the plot.
+
+```{block, type = 'written_answer'}
+
+your written answer here
+
+```
+
+## Modeling the data
+
+> **[QUESTION]** Estimate a linear model of log property prices with `lm` and store the model in object `prices_model`. Model log prices as a function of:
+ 
+* the total living area (`LIVING_AREA`)
+* the number of bedrooms (`R_BDRMS`)
+* the number of full bathrooms (`R_FULL_BTH`)
+* the number of half bathrooms (`R_HALF_BTH`)
+* the number of fireplaces (`R_FPLACE`)
+
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Use `summary` to view the results.
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Interpret the coefficient on R_BDRMS **and** indicate whether the coefficient is statistically significant and why (or why not). Be sure to state the null and alternative hypotheses.
+
+```{block, type = 'written_answer'}
+
+your answer here
+
+```
+
+## Evaluating the model
+
+**[Q]** Predict the **raw price** (i.e. in regular dollars, not log dollars) of a property with a living area of 2154 square feet, 4 bedrooms, 2 full bathrooms, 1 half bathroom and 1 fireplace. Hint:
+
+$$
+e^{log(x)} = x
+$$
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Use `broom::augment` to calculate predicted prices and the residuals. Then plot the distribution of residuals.
+
+```{r}
+# your code here
+```
+
+
+> **[QUESTION]** Interpret the plot.
+
+```{block, type = 'written_answer'}
+
+your written answer here
+
+```
+

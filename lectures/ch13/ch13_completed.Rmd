@@ -1,0 +1,272 @@
+---
+title: "Relational Data (Completed Notebook)"
+subtitle: "R for Data Science"
+author: "LDG"
+output:  
+  html_notebook:
+    number_sections: true
+    theme: readable
+    highlight: pygments
+    toc: true
+    toc_float: 
+      collapsed: yes      
+---
+
+# Set-up {-}
+
+```{r load packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(nycflights13) # for the section on relational data
+```
+
+## Acknowledgements {-}
+
+This notebook is based on Chapter 13 of of [*R for Data Science*](https://r4ds.had.co.nz/index.html).
+
+# The friendly skies
+
+Here are all flights in and out of New York City in 2013 (more details [here](https://cran.r-project.org/web/packages/nycflights13/index.html)):
+
+```{r load airlines}
+flights
+```
+
+The column `arr_delay` shows whether a flight landed early (negative) or late (positive). It has NAs:
+
+```{r any nas}
+any(is.na(flights$arr_delay))
+```
+
+(`is.na(x)` returns a vector of length `x`, each element a `TRUE` or `FALSE`, but `any(is.na(x)`) returns a vector of length 1.)
+
+Let's filter out the NAs with `tidyr::drop_na` and plot the distribution
+
+```{r plot arr_delay}
+flights %>% 
+  drop_na() %>% 
+  ggplot(., aes(x = arr_delay)) + 
+  geom_density()
+```
+
+Looks like on average flights arrive on time (who knew!). But we have lots of outliers. Let's see if we can't filter some out so we can run an analysis on the bulk of non-outlier observations. The logic is that processes that generate huge delays may be systematically different than processes generating small delays.
+
+Use `stat_ecdf()` to plot the cumulative distribution:
+
+```{r cumlative distribution}
+flights %>% 
+  drop_na() %>% 
+  ggplot(., aes(x = arr_delay)) + 
+  stat_ecdf() +
+  geom_vline(xintercept = 100, color = "red", linetype = "dotted")
+```
+
+So *almost* about 98% of flights have positive delays below 100 minutes. So let's filter and re-plot the histogram:
+
+```{r filter and replot}
+flights %>% 
+  drop_na() %>% 
+  filter(arr_delay < 100) %>% 
+  ggplot(., aes(x = arr_delay)) + 
+  geom_density()
+```
+
+(Looks like average flights are actually early!!)
+
+Side note: you can't log-transform the data to smooth the outliers. Why? Because some arrivals are on time (`arr_delay == 0`) and others are early (`arr_delay < 0`). The problem is that `log(0)` is $-\infty$ while `log(-1)` (or any negative number) is undefined.
+
+## Modeling
+
+What predicts late (or early) arrivals? 
+
+You could build a simple model of arrival delays as a function of certain variables, like weather, the operating airlines, the type of plane, and other variables plus some error:
+
+$$
+\text{arrival delay} = f(\text{explanatory variables}) + \epsilon
+$$
+and back estimate the parameters to explain the **conditional average delay** (the average delay conditional on your explanatory variables). If your model $f(\dots)$ is linear then you can just run OLS with `lm()`. And so on. 
+
+### Where are my explanatory variables?
+
+But while `flights` does have information about carriers in the column `carrier`:
+
+```{r flights carrier, message = FALSE}
+flights %>% 
+  drop_na() %>% 
+  filter(arr_delay < 100) %>% 
+  group_by(carrier) %>% 
+  summarise(avg_delay = mean(arr_delay))
+```
+
+we only have an abbreviation (we'd have to look up those values). More details are stored in `airlines`:
+
+```{r airlines}
+airlines
+```
+
+
+More importantly `flights` has scant data on planes or weather. 
+
+Those data are stored in different objects:
+
+```{r planes}
+planes
+```
+
+and
+
+```{r weather}
+weather
+```
+
+Can we join these data sets? Yes. But it's not as simple as just binding columns together. Each data set has a different number of rows:
+
+```{r}
+nrow(flights)
+nrow(airlines)
+nrow(planes)
+nrow(weather)
+```
+
+## Merging data
+
+The challenge is to **join** these data sets. The key to solving this problem is literally that: the **key** of each data set. 
+
+Data sets can have **keys** the uniquely idenfity observations. This builds on the idea of "tidy" data: each row a unique observation.
+
+For instance, `tailnum` in `planes` uniquely identifies each plane. We can see this counting the number of repeats:
+
+```{r tailnum planes}
+planes %>% 
+  count(tailnum) %>% 
+  filter(n > 1)
+```
+
+and finding none. 
+
+But `tailnum` does not uniquely identify observations in `flights`:
+
+```{r tailnum flights}
+flights %>% 
+  count(tailnum) %>% 
+  filter(n > 1)
+```
+
+Because the same plane does many flights over the course of a year. 
+
+But `tailnum` in `flights` maps onto `tailnum` in `planes`. 
+
+In fact, there are several mappings between all the data sets:
+
+![From the book](https://d33wubrfki0l68.cloudfront.net/245292d1ea724f6c3fd8a92063dcd7bfb9758d02/5751b/diagrams/relational-nycflights.png)
+
+and we use the **relationships** or mappings between data sets to join them (hence "relational data").
+
+Joins can get really [complicated](https://r4ds.had.co.nz/relational-data.html#join-problems). We will just focus on one type of join: an **outer join**.
+
+## Outer joins
+
+In an outer join you keep all observations in one data set and add what you need from another. 
+
+`dplyr` has three types of joins: left, right and full:
+
+![](https://d33wubrfki0l68.cloudfront.net/9c12ca9e12ed26a7c5d2aa08e36d2ac4fb593f1e/79980/diagrams/join-outer.png)
+
+`left_join` is the most common. If you have two data sets `x` and `y`, then:
+
+```{r left_join no eval, eval=FALSE}
+left_join(x,y, by = "key")
+```
+
+or 
+
+```{r left_join no eval method 2, eval=FALSE}
+x %>% 
+  left_join(y, by = "key")
+```
+
+says "keep all the data in `x`, and tack on the matching observations in `y`". Matchings are identified by "key". Using the pipe (`%>%`) makes it easier to do many joins.
+
+Left joins are also the easiest to think about (in my opinion).
+
+First, identify your "primary" data. In our case it's `flights`.
+
+Then, let the "non-primary" data "join in". 
+
+## Checkpoint
+
+Let's join `flights` with `planes` using `left_join`. The key again is `tailnum`.
+
+```{r left_join flights planes}
+flights_planes <- flights %>% 
+  left_join(planes, by = "tailnum")
+
+flights_planes
+```
+
+now we have a new data set with the same number of observations as `flights` -- but with richer information about the type of plane used for each flight. 
+
+For instance, is there a relationship between the size of a plane (as measured by the number of engines) and delay time? 
+
+```{r relationship delay time engines, message=FALSE}
+flights_planes %>% 
+  drop_na() %>% 
+  group_by(engines) %>% 
+  summarise(mean_delay = mean(arr_delay)) %>% 
+  ggplot(data = ., aes(x = engines, y = mean_delay)) + 
+  geom_col()
+```
+
+## Checkpoint
+
+Try to `left_join()` the `weather` to `flights` and create the object `flights_weather`. Looking at the relations picture above we see that the **keys** mapping the two data sets are `c("year", "month", "day", "hour", "origin")`.
+
+```{r join flights weather}
+flights_weather <- flights %>% 
+  left_join(weather, by = c("year", "month", "day", "hour", "origin"))
+```
+
+Is there a relationship between temperature (`temp`) and delay time (`arr_delay`)? 
+
+```{r}
+flights_weather %>% 
+  drop_na() %>% 
+  ggplot(aes(x = temp, y = arr_delay)) + 
+  geom_point(alpha = 0.5)
+```
+
+## Checkpoint 
+
+Join `flights`, `airlines`, `planes` and `weather`. Then test the hypothesis that JetBlue flights are significantly more delayed than American Airlines flights, others using a linear regression via `lm()`, controling for the temperature and the number of engines on a plane. The model is:
+
+$$
+\begin{aligned}
+\text{arrival delay} &= f(\text{airlines}, \text{temperature}, \text{engines}) + \epsilon \\
+                     &= \beta_0 + \beta_1(\text{airlines}) + \beta_2(\text{temperature}) + \beta_3(\text{engines}) + \epsilon
+\end{aligned}
+$$
+
+First join the data (hint: join `weather` before `planes`):
+
+```{r flights_enhanced}
+flights_enhanced <- flights %>% 
+  left_join(airlines, by = "carrier") %>% 
+  left_join(weather, by = c("year", "month", "day", "hour", "origin")) %>% 
+  left_join(planes, by = "tailnum") 
+```
+
+Recall the airlines codes:
+
+```{r airlines recall}
+airlines
+```
+
+Now filter and estimate the model:
+
+```{r flights_airlines}
+flights_enhanced %>% 
+  filter(carrier %in% c("AA", "B6")) %>% 
+  lm(formula = arr_delay ~ name + temp + engines, data = .) %>% 
+  summary()
+```
+
+Seems so!
