@@ -358,7 +358,7 @@ In this section you will explore data on property assessments in Boston. The dat
 Load all the data from FY18:
 
 ```{r load boston_property, message=FALSE, warning=FALSE}
-boston_property = read_csv("https://query.data.world/s/pfqt62iufpcricbewykr3q6nrnpj6n")
+boston_property = read_csv("https://raw.githubusercontent.com/lrdegeest/r_for_data_science/main/data/boston_property.csv")
 ```
 
 The variable `AV_TOTAL` shows property assessments in US dollars.
