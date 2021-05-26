@@ -17,6 +17,7 @@ output:
 ```{r load packages, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(broom)
+library(patchwork)
 # make sure you have also installed the AER package: install.packages("AER")
 ```
 
@@ -317,8 +318,8 @@ So we need to `mutate` two variables:
 bpm = bpm_predictions %>% 
   # predicted denial
   mutate(predicted_deny= ifelse(.fitted > 0.5, 1, 0)) %>% 
-  # difference between 
-  mutate(error = abs(deny_numeric - predicted_deny))
+  # squared error
+  mutate(error = (deny_numeric - predicted_deny)^2)
 ```
 
 What was our **average** error rate?
@@ -398,4 +399,26 @@ To estimate the model just change the flag for the link function from "logit" to
 HMDA %>% 
   glm(formula = deny_numeric ~ pirat + afam + lvrat + mhist + hirat, data = .,  family = binomial(link = "probit")) %>% 
   summary()
+```
+
+The coefficients are different numbers because they represent z-scores. But the basic relationships are the same. And the estimated probability curves are similar:
+
+```{r logit vs probit, warning = FALSE, message=FALSE}
+# base scatter plot
+base_plot = HMDA %>% 
+  ggplot(data = ., aes(x = pirat, y = deny_numeric)) +
+  geom_point() 
+
+# logit
+plot_logit = base_plot + 
+  geom_smooth(method = "glm", method.args = list(family = binomial(link = "logit"))) + 
+  labs(title = "Logistic regression")
+
+# probit
+plot_probit = base_plot + 
+  geom_smooth(method = "glm", method.args = list(family = binomial(link = "probit"))) + 
+  labs(title = "Probit regression")
+
+# combine with library(patchwork)
+plot_logit + plot_probit
 ```

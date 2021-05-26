@@ -22,10 +22,6 @@ library(tidyverse)
 
 This notebook is based on Chapters 21 of [*R for Data Science*](https://r4ds.had.co.nz/index.html).
 
-1. simple loops. on a vector, on a data frame
-2. purr maps: creating functionals
-3. CLT
-
 # The definition of madness
 
 Einstein once said:

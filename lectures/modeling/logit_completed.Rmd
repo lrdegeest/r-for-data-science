@@ -17,6 +17,7 @@ output:
 ```{r load packages, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(broom)
+library(patchwork)
 ```
 
 ## Caveats {-}
@@ -316,8 +317,8 @@ So we need to `mutate` two variables:
 bpm = bpm_predictions %>% 
   # predicted denial
   mutate(predicted_deny= ifelse(.fitted > 0.5, 1, 0)) %>% 
-  # difference between 
-  mutate(error = abs(deny_numeric - predicted_deny))
+  # squared error
+  mutate(error = (deny_numeric - predicted_deny)^2)
 ```
 
 What was our **average** error rate?
@@ -424,6 +425,6 @@ plot_probit = base_plot +
   geom_smooth(method = "glm", method.args = list(family = binomial(link = "probit"))) + 
   labs(title = "Probit regression")
 
-# combine
-ggpubr::ggarrange(plot_logit, plot_probit, labels = "AUTO") 
+# combine with library(patchwork)
+plot_logit + plot_probit
 ```

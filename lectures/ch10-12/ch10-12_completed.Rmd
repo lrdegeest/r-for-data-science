@@ -436,7 +436,7 @@ people
 
 It needs to be tidied. What happens if you try to pivot wider? 
 
-```{r try to pivot people wider}
+```{r try to pivot people wider, warning=FALSE}
 people %>% 
   pivot_wider(names_from = names, values_from = values)
 ```

@@ -181,7 +181,7 @@ square_sum(x = 3)
 Inside `square_sum` you defined an object `output`. But if you call it you'll get an error:
 
 ```{r where is output?}
-square_x
+output
 ```
 
 This is because `output` is a **local variable**. It only "exists" (to R) inside `square_sum`. The big idea here is that functions are **environments**. What happens in Vegas stays in Vegas -- unless you `return()` it!

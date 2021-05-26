@@ -1,0 +1,99 @@
+---
+title: "Memo: Visualize Regression Models"
+subtitle: "R for Data Science"
+author: "LDG"
+output: 
+  html_notebook:
+    number_sections: true
+    theme: readable
+    highlight: pygments
+    toc: true
+    toc_float: 
+      collapsed: yes
+---
+
+# Dependencies {-}
+
+```{r, message=FALSE}
+library(tidyverse)
+library(sjPlot) 
+```
+
+
+The package `sjPlot` provides the function `plot_model`. It plots model objects. Learn more here: https://strengejacke.github.io/sjPlot/index.html
+
+# Linear regression
+
+Basic model with `summary()` view:
+
+```{r}
+iris %>% 
+  lm(formula = Sepal.Length ~ Sepal.Width + Petal.Length + Species, data = .) %>% 
+  summary()
+```
+
+Plot the coefficients instead:
+
+```{r}
+iris %>% 
+  lm(formula = Sepal.Length ~ Sepal.Width + Petal.Length + Species, data = .) %>% 
+  plot_model(model = .)
+```
+
+Spruce it up:
+
+```{r}
+iris %>% 
+  lm(formula = Sepal.Length ~ Sepal.Width + Petal.Length + Species, data = .) %>% 
+  plot_model(model = ., color = "black", sort.est = TRUE, show.values = TRUE) +
+  geom_hline(yintercept = 0, color = "gray") + 
+  labs(title = "Look at this model", subtitle = "Wow such insight") + 
+  theme_sjplot2() + 
+  theme_light()
+```
+
+
+
+# Logitistic Regression
+
+HDMA data (you need to install the package `AER`):
+
+```{r}
+data("HMDA", package = "AER")
+```
+
+Basic model with `summary()` view:
+
+```{r}
+HMDA %>% 
+  glm(formula = deny ~ pirat + mhist + chist + hirat + afam, data = ., family = binomial(link = "logit")) %>% 
+  summary()
+```
+
+Plot the odds-ratios instead:
+
+```{r}
+HMDA %>% 
+  glm(formula = deny ~ pirat + mhist + chist + hirat + afam, data = ., family = binomial(link = "logit")) %>% 
+  plot_model(model = .) 
+```
+
+Fine-tune the plot:
+
+```{r}
+HMDA %>% 
+  glm(formula = deny ~ pirat + mhist + chist + hirat + afam, data = ., family = binomial(link = "logit")) %>% 
+  plot_model(model = ., color = "black", sort.est = TRUE) +
+  geom_hline(yintercept = 1) + 
+  labs(title = "Probability a mortgage application is denied", subtitle = "Boston Housing Data, 1990") + 
+  theme_minimal()
+```
+
+Plot predicted probabilities of a continuous variable:
+
+```{r}
+HMDA %>% 
+  glm(formula = deny ~ pirat + mhist + chist + hirat + afam, data = ., family = binomial(link = "logit")) %>% 
+  plot_model(model = ., type = "pred", terms="pirat [all]") 
+```
+
