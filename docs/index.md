@@ -58,8 +58,8 @@ You need the following packages installed to run the notebooks:
 * `tidyverse` for all things tidy ([link](https://www.tidyverse.org/))
 * `patchwork` to combine `ggplot`s ([link](https://patchwork.data-imaginist.com/))
 * `sjPlot` to visualize models ([link](https://strengejacke.github.io/sjPlot/))
-* [`broom`] for tidy model objects ([link](https://broom.tidymodels.org/))
-* [`AER`] for some data sets ([link](https://cran.r-project.org/web/packages/AER/index.html))
+* `broom` for tidy model objects ([link](https://broom.tidymodels.org/))
+* `AER` for some data sets ([link](https://cran.r-project.org/web/packages/AER/index.html))
 
 # Use
 
