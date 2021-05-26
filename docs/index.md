@@ -20,7 +20,7 @@ All the lectures are delivered as R Notebooks. Each lecture has two notebooks: a
 
 The idea is that during lecture you work through the student copy as a class or in small groups. The notebooks have checkpoints in which students answer questions. Answers are given in the instructor copy. 
 
-Each checkpoint is a third-level header (`<h3>` or `###`) so you can use R Studio's navigation pane:
+Code chunks are named and each checkpoint is a third-level header (`<h3>` or `###`) so you can use R Studio's navigation panes to jump from one exercise or section to another.
 
 # Highlights
 
@@ -35,15 +35,21 @@ The lectures use a few interesting data sets not found in the book, including:
 
 The Covid-19, avocado prices and NHANES II data sets are hosted on GitHub. The HMDA data set is imported by the `AER` package.
 
-## 
+## Modeling
+
+Since model building is the main emphasis of this short course, the majority of the code exercises have something to do with stats/econometrics/modeling in general. For example:
+
+* The lecture on [exploratory data analysis](ch7_completed.nb.html) builds up to a linear model with dummies and interaction effects.
+* The lecture on [programming functions](https://lrdegeest.github.io/r_for_data_science/ch19_completed.nb.html) includes a checkpoint in which students code a function to manually implement OLS.
+* The lecture on [iteration](https://lrdegeest.github.io/r_for_data_science/ch21_completed.nb.html) has a section in which students learn to simulate sampling distributions and visualize the Central Limit Theorem.
 
 # Dependencies
 
 You need the following packages installed to run the notebooks: 
 
-* [`tidyverse`](https://www.tidyverse.org/) for all things tidy
-* [`patchwork`](https://patchwork.data-imaginist.com/) to combine `ggplot`s
-* [`sjPlot`](https://strengejacke.github.io/sjPlot/) to visualize models
-* [`broom`](https://broom.tidymodels.org/) for tidy model objects
-* [`AER`](https://cran.r-project.org/web/packages/AER/index.html) for some data sets
+* `tidyverse` for all things tidy ([link](https://www.tidyverse.org/))
+* `patchwork` to combine `ggplot`s ([link](https://patchwork.data-imaginist.com/))
+* `sjPlot` to visualize models ([link](https://strengejacke.github.io/sjPlot/))
+* [`broom`] for tidy model objects ([link](https://broom.tidymodels.org/))
+* [`AER`] for some data sets ([link](https://cran.r-project.org/web/packages/AER/index.html))
 

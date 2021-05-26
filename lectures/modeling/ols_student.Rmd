@@ -28,8 +28,8 @@ Life is about relationships. And relationships are about **co-variation**: two t
 
 Let's continue working with the data `nhanes` which records, among other things, data on human heights in a sample of over 10,000 people. This data comes from a [CDC survey](https://wwwn.cdc.gov/nchs/nhanes/continu=ousnhanes/default.aspx). 
 
-```{r load nhanes, message=FALSE}
-nhanes = read_csv("https://query.data.world/s/k5y6uqf7xhsjqwcpldplc6kvytjtoy")
+```{r load nhanes, warning = FALSE, message=FALSE}
+nhanes = read_csv("https://raw.githubusercontent.com/lrdegeest/r_for_data_science/main/data/nhanes.csv")
 ```
 
 Consider the simple relationship between height and weight. Do you get heavier when you get taller? 

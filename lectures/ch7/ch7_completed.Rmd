@@ -75,9 +75,8 @@ Let's start with a trivial example: variation in height across males and females
 
 Re-load the `nhanes` survey data:
 
-```{r load nhanes, message=FALSE}
-# data hosted on data.world page 
-nhanes = read_csv("https://query.data.world/s/k5y6uqf7xhsjqwcpldplc6kvytjtoy")
+```{r load nhanes, warning = FALSE, message=FALSE}
+nhanes = read_csv("https://raw.githubusercontent.com/lrdegeest/r_for_data_science/main/data/nhanes.csv")
 ```
 
 We have basic medical data of over 10,000 randomly surveyed individuals (the survey was carried out by the CDC). One of those variables is `height`. 
@@ -196,7 +195,7 @@ Let's consider a more interesting example: demand for organic avocados.
 Here is some data on avocados [Kaggle](https://www.kaggle.com/neuromusic/avocado-prices/) thanks to the [Hass Avocado Board](https://hassavocadoboard.com/):
 
 ```{r load avocados, warning=FALSE, message=FALSE}
-avocados = read_csv("https://query.data.world/s/zxsez6vfybv2fwaeorrgy3fufxsvnn")
+avocados = read_csv("https://raw.githubusercontent.com/lrdegeest/r_for_data_science/main/data/avocados.csv")
 ```
 
 ## Checkpoint 
