@@ -43,6 +43,8 @@ Since model building is the main emphasis of this short course, the majority of 
 * The lecture on [programming functions](https://lrdegeest.github.io/r_for_data_science/ch19_completed.nb.html) includes a checkpoint in which students code a function to manually implement OLS.
 * The lecture on [iteration](https://lrdegeest.github.io/r_for_data_science/ch21_completed.nb.html) has a section in which students learn to simulate sampling distributions and visualize the Central Limit Theorem.
 
+## Exams
+
 # Dependencies
 
 You need the following packages installed to run the notebooks: 
@@ -53,3 +55,10 @@ You need the following packages installed to run the notebooks:
 * [`broom`] for tidy model objects ([link](https://broom.tidymodels.org/))
 * [`AER`] for some data sets ([link](https://cran.r-project.org/web/packages/AER/index.html))
 
+# Use
+
+These notebooks are published with an MIT License. Feel free to use and modify them for your own needs. Let me know if you find any bugs by [posting an issue on GitHub](https://github.com/lrdegeest/r_for_data_science/issues).  
+
+# Last updated
+
+May 2021
