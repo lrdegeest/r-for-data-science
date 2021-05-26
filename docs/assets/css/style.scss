@@ -16,7 +16,7 @@ code {
 }
 
 h1 {
-  border-bottom: 3px solid #d3d3d3;
+  border-bottom: 3px solid #333;
   font-size: 28px;
 }
 
@@ -28,39 +28,4 @@ h1.title {
   border-bottom: 0px;
   font-size: 32px;
   margin: 0 0 0px;
-}
-
-@media print, screen and (max-width: 960px) {
-
-  div.wrapper {
-    width:auto;
-    margin:0;
-  }
-
-  header, section, footer {
-    float:none;
-    position:static;
-    width:auto;
-  }
-
-  header {
-    padding-right:320px;
-  }
-
-  section {
-    border:0px solid #e5e5e5;
-    border-width:1px 0;
-    padding:20px 0;
-    margin:0 0 20px;
-  }
-
-  header a small {
-    display:inline;
-  }
-
-  header ul {
-    position:absolute;
-    right:50px;
-    top:52px;
-  }
 }
