@@ -229,7 +229,7 @@ class(sum_squares)
 `sum()` can add a single number:
 
 ```{r sum demo one number}
-sum(2)
+sum(2) 
 ```
 
 which of course is not useful at all. 
