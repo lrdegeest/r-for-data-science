@@ -1,4 +1,5 @@
 theme: jekyll-theme-minimal
 title: "R For Data Science"
-description: "A Short Course by @lrdegeest"
+description: "A short course by @lrdegeest"
 logo: farside.png
+show_downloads: "true"
