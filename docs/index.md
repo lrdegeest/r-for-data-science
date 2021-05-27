@@ -49,7 +49,7 @@ Since model building is the main emphasis of this short course, the majority of 
 
 The final exam is an R Markdown file with blank code chunks and custom-made writing chunks (so students know where to write their non-code answers).
 
-Students submit their completed .Rmd files. I use a [script](https://github.com/lrdegeest/r_for_data_science/blob/main/exams/render_submissions.R) to auto-render each file to HTML and log which files could or could not render. A summary report is also generated.
+Students submit their completed .Rmd files. I use a [script](https://github.com/lrdegeest/r_for_data_science/blob/main/exams/render_submissions.R) to auto-render each file to HTML and log which files could or could not render. A log file is written for each submission that tells which code chunks failed to compile, if any. A summary report for all submissions is also generated. 
 
 # Dependencies
 
