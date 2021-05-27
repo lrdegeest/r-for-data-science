@@ -1,7 +1,5 @@
-# r_for_data_science
+Materials for a master's / advanced undergraduate course on R programming based mostly on the excellent book [*R For Data Science*](https://r4ds.had.co.nz/).
 
-Materials for a short master's level course on R programming based mostly on the excellent book [*R For Data Science*](https://r4ds.had.co.nz/).
-
-More details [here](https://lrdegeest.github.io/r_for_data_science/index.html).
+For more details see the course [website](https://lrdegeest.github.io/r_for_data_science/index.html).
 
 
