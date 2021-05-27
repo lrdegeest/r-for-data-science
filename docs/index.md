@@ -2,6 +2,16 @@
 
 A series of lecture notes and workbooks from a short, master's level course about data science in R. The content is based mostly on the excellent book [*R For Data Science*](https://r4ds.had.co.nz/). Emphasis is placed on using code to build models. Less attention is given to tasks like data cleaning. Assumes no background in R programming.
 
+# Format
+
+All the lectures are delivered as R Notebooks. Each lecture has two notebooks: a student copy (e.g., `logit_student.Rmd`) and an instructor copy (`logit_completed.Rmd`). 
+
+The idea is that during lecture you work through the student copy as a class or in small groups. The notebooks have checkpoints in which students answer questions. Answers are given in the instructor copy. 
+
+Code chunks are named and each checkpoint is a third-level header (`<h3>` or `###`) so you can use R Studio's navigation panes to jump from one exercise or section to another.
+
+## Completed notebooks
+
 1. [Why code?](intro.pdf)
 2. [Introduction to R](intro_to_r_completed.nb.html)
 3. [Exploratory Data Analysis](ch7_completed.nb.html)
@@ -14,14 +24,6 @@ A series of lecture notes and workbooks from a short, master's level course abou
 10. [Memo on visualizing models](visualize_models.nb.html)
 11. [Final exam](final_exam_solutions.html)
 
-
-# Format
-
-All the lectures are delivered as R Notebooks. Each lecture has two notebooks: a student copy (e.g., `logit_student.Rmd`) and an instructor copy (`logit_completed.Rmd`). 
-
-The idea is that during lecture you work through the student copy as a class or in small groups. The notebooks have checkpoints in which students answer questions. Answers are given in the instructor copy. 
-
-Code chunks are named and each checkpoint is a third-level header (`<h3>` or `###`) so you can use R Studio's navigation panes to jump from one exercise or section to another.
 
 # Highlights
 
