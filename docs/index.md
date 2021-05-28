@@ -2,7 +2,7 @@
 
 A series of lecture notes and workbooks from a short, master's level course about data science in R. The content is based mostly on the excellent book [*R For Data Science*](https://r4ds.had.co.nz/). Emphasis is placed on using code to build models. Less attention is given to tasks like data cleaning. Assumes no background in R programming.
 
-# Format
+# Notebooks
 
 All the lectures are delivered as R Notebooks. Each lecture has two notebooks: a student copy (e.g., `logit_student.Rmd`) and an instructor copy (`logit_completed.Rmd`). 
 
@@ -44,8 +44,8 @@ The Covid-19, avocado prices, NHANES II and Boston property data sets are hosted
 Since model building is the main emphasis of this short course, the majority of the code exercises have something to do with stats/econometrics/modeling in general. For example:
 
 * The lecture on [exploratory data analysis](ch7_completed.nb.html) builds up to a linear model with dummies and interaction effects.
-* The lecture on [programming functions](https://lrdegeest.github.io/r_for_data_science/ch19_completed.nb.html) includes a checkpoint in which students code a function to manually implement OLS.
-* The lecture on [iteration](https://lrdegeest.github.io/r_for_data_science/ch21_completed.nb.html) has a section in which students learn to simulate sampling distributions and visualize the Central Limit Theorem.
+* The lecture on [programming functions](ch19_completed.nb.html) includes a checkpoint in which students code a function to manually implement OLS.
+* The lecture on [iteration](ch21_completed.nb.html) has a section in which students learn to simulate sampling distributions and visualize the Central Limit Theorem.
 
 ## Exams
 
