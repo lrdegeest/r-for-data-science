@@ -33,7 +33,7 @@ The lectures use a few interesting data sets not found in the book, including:
 
 * [Covid-19 data from Johns Hopkins](https://github.com/CSSEGISandData/COVID-19)
 * [Avocado prices](https://www.kaggle.com/neuromusic/avocado-prices/) from the [Hass Avocado Board](https://hassavocadoboard.com/)
-* [NHANES II](https://wwwn.cdc.gov/Nchs/Nhanes/nhanes2/default.aspx)
+* [NHANES II](https://wwwn.cdc.gov/Nchs/Nhanes/nhanes2/default.aspx) (The second wave of the CDC's National Health and Nutrition Examination Survey)
 * [Mortgage applications from Boston in 1990 (HMDA)](https://rdrr.io/cran/AER/man/HMDA.html)
 * [FY2018 Boston property prices and attributes](https://data.boston.gov/dataset/property-assessment/resource/bac18ae6-b8fd-4cd3-a61c-c5e1a11f716c) from [Analyze Boston](https://data.boston.gov/)
 
