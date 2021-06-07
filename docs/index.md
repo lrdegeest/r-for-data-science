@@ -1,6 +1,8 @@
 # About
 
-A series of lecture notes and workbooks from a short, master's level course about data science in R. The content is based mostly on the excellent book [*R For Data Science*](https://r4ds.had.co.nz/). Emphasis is placed on using code to build models. Less attention is given to tasks like data cleaning. Assumes no background in R programming.
+A series of lecture notes and workbooks from a short, master's level course about data science in R. The content is based mostly on the excellent book [*R For Data Science*](https://r4ds.had.co.nz/). (For solutions to the chapter exercises check out Jeffrey Arnold's [book](https://jrnold.github.io/r4ds-exercise-solutions/index.html).)
+
+Emphasis is placed on using code to build models. Less attention is given to tasks like data cleaning. Assumes no background in R programming.
 
 # Notebooks
 
